@@ -11,6 +11,15 @@ import requests
 import os
 import json
 
+"""
+Config Vars
+
+GOOGLE_CREDENTIALS: The credentials I have to log in to my Google API account to connect to gspread
+token: The token of my bot
+top.gg-token: My top.gg API token
+discord.boats-token: My discord.boats API token
+discordbotlist.com-token: My discordbotlist.com API token
+"""
 scope = 'https://spreadsheets.google.com/feeds' 
 creds = ServiceAccountCredentials.from_json_keyfile_dict(json.loads(os.environ['GOOGLE_CREDENTIALS']), scope)
 gs_client = gspread.authorize(creds)
@@ -19,8 +28,6 @@ dictionary = PyDictionary()
 client = commands.Bot(command_prefix="$", activity=discord.Game(name="Aadit's Hangman || $help"))
 client.remove_command("help")
 client.add_check(commands.bot_has_permissions(send_messages=True).predicate)
-# Google Spreadsheet Link
-# https://docs.google.com/spreadsheets/d/1ZB83Fi0J4k2NybwrszlYPEwaOalkflwUVVunC1cIg1U/edit?usp=sharing
 
 rw = RandomWords()
 
@@ -33,7 +40,7 @@ async def on_ready():
 @client.command()
 async def start(ctx):
     if ctx.author in authors:
-        return #hey audit i fixed the balance so you can run the beta bot if you want - CodeMyGame
+        return
     def check(m):
         return m.author == ctx.author and m.channel == ctx.channel
     word = rw.random_word()
@@ -408,10 +415,11 @@ async def buy(ctx, item):
             hints += 1
             sheet.update_cell(cell.row, column, coins)
             sheet.update_cell(cell.row, column_h, hints)
-            await ctx.send('Success! You now have one more defenition!')
+            await ctx.send('Success! You now have one more hint!')
         except Exception as e:
             print(e)
             await ctx.send('You don\'t have any coins! Get coins by typing `$start` and win!')
+    # Below is a new currency which has not been released yet
     elif item == 'defenition' or item == 'def':
         await ctx.send('Giving you a defenition...')
         if creds.access_token_expired:
