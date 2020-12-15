@@ -464,7 +464,7 @@ async def vote(ctx):
     voteEmbed = discord.Embed(title='Vote for Aadit\'s Hangman Bot!', color=hex_number)
     voteEmbed.add_field(name="2 saves per vote (bot)", value="[Top.gg](https://top.gg/bot/748670819156099073)\n[Discord Boats](https://discord.boats/bot/748670819156099073)\n[DBL](https://discord.ly/aadits-audits-hangman-bot)")
     voteEmbed.add_field(name="No perks, but please vote (bot)", value="[Botrix.cc](https://botrix.cc/bots/748670819156099073)\n[RBL](https://bots.rovelstars.ga/bots/748670819156099073)")
-    voteEmbed.add_feilt(name="No voting system", value="[discord.bots.gg](https://discord.bots.gg/bots/748670819156099073)\n[BOD](https://bots.ondiscord.xyz/bots/748670819156099073)")
+    voteEmbed.add_feild(name="No voting system", value="[discord.bots.gg](https://discord.bots.gg/bots/748670819156099073)\n[BOD](https://bots.ondiscord.xyz/bots/748670819156099073)")
     voteEmbed.add_field(name='Vote for our server!', value='[top.gg](https://top.gg/servers/748672765837705337)')
     voteEmbed.timestamp = datetime.datetime.now()
     voteEmbed.set_footer(text='TYSM for voting!')
