@@ -25,7 +25,7 @@ creds = ServiceAccountCredentials.from_json_keyfile_dict(json.loads(os.environ['
 gs_client = gspread.authorize(creds)
 dictionary = PyDictionary()
 
-client = commands.Bot(command_prefix="$", activity=discord.Game(name="Aadit's Hangman || $help"))
+client = commands.Bot(command_prefix="$", activity=discord.Activity(name="Christmas Come || $help", type=discord.ActivityType.watching))
 client.remove_command("help")
 client.add_check(commands.bot_has_permissions(send_messages=True).predicate)
 
@@ -99,7 +99,7 @@ async def start(ctx):
                         else:
                             await guess.channel.send('👌 ' + ctx.author.mention + ', a letter has been revealed for you, and you used one hint!!\n ' + cl_txt + '\n **Wrong Letters:** ' + wl + '\nYou still have ' + str(tries) + ' wrong tries left! Please wait for a moment...', file=discord.File(pic))
                         if '＿' not in cl_txt:
-                            await guess.channel.send(ctx.author.mention + ', 🎉 You won! 🎉 You got 7 coins, and the game is over. Please wait a moment...')
+                            await guess.channel.send(ctx.author.mention + ', :santa: You won! :santa: You got 7 coins, and the game is over. Please wait a moment...')
                             if creds.access_token_expired:
                                 gs_client.login()
                             sheet = gs_client.open('Hangman bot').sheet1
@@ -198,7 +198,7 @@ async def start(ctx):
                 else:
                     await guess.channel.send('✅ ' + ctx.author.mention + ', "' + str_guess + '" is in the word!\n ' + cl_txt + '\n **Wrong Letters:** ' + wl + '\nYou still have ' + str(tries) + ' wrong tries left! Please wait for a moment...', file=discord.File(pic))
                 if '＿' not in cl_txt:
-                    await guess.channel.send(ctx.author.mention + ', 🎉 You won! 🎉 You got 7 coins, and the game is over. Please wait a moment...')
+                    await guess.channel.send(ctx.author.mention + ', :santa: You won! :santa: You got 7 coins, and the game is over. Please wait a moment...')
                     if creds.access_token_expired:
                         gs_client.login()
                     sheet = gs_client.open('Hangman bot').sheet1
