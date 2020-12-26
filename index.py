@@ -99,7 +99,7 @@ async def start(ctx):
                         else:
                             await guess.channel.send('👌 ' + ctx.author.mention + ', a letter has been revealed for you, and you used one hint!!\n ' + cl_txt + '\n **Wrong Letters:** ' + wl + '\nYou still have ' + str(tries) + ' wrong tries left! Please wait for a moment...', file=discord.File(pic))
                         if '＿' not in cl_txt:
-                            await guess.channel.send(ctx.author.mention + ', :santa: You won! :santa: You got 14 coins (double coins for christmas event!), and the game is over. Please wait a moment...')
+                            await guess.channel.send(ctx.author.mention + ', :tada: You won! :tada: You got 7 coins, and the game is over. Please wait a moment...')
                             if creds.access_token_expired:
                                 gs_client.login()
                             sheet = gs_client.open('Hangman bot').sheet1
@@ -111,11 +111,11 @@ async def start(ctx):
                                 coins = sheet.cell(cell.row, column).value
                                 coins = str(coins)
                                 coins = int(coins)
-                                coins += 14
+                                coins += 7
                                 sheet.update_cell(cell.row, column, coins)
                             except Exception as e:
                                 print(e)
-                                row = [ctx.author.id, 14, 0, 0, 0]
+                                row = [ctx.author.id, 7, 0, 0, 0]
                                 index = sheet.row_count + 1
                                 sheet.insert_row(row, index)
                             await guess.channel.send(ctx.author.mention + ', Thanks for playing!')
@@ -198,7 +198,7 @@ async def start(ctx):
                 else:
                     await guess.channel.send('✅ ' + ctx.author.mention + ', "' + str_guess + '" is in the word!\n ' + cl_txt + '\n **Wrong Letters:** ' + wl + '\nYou still have ' + str(tries) + ' wrong tries left! Please wait for a moment...', file=discord.File(pic))
                 if '＿' not in cl_txt:
-                    await guess.channel.send(ctx.author.mention + ', :santa: You won! :santa: You got 14 coins (double coins for christmas event!), and the game is over. Please wait a moment...')
+                    await guess.channel.send(ctx.author.mention + ', :tada: You won! :tada: You got 7 coins, and the game is over. Please wait a moment...')
                     if creds.access_token_expired:
                         gs_client.login()
                     sheet = gs_client.open('Hangman bot').sheet1
@@ -210,11 +210,11 @@ async def start(ctx):
                         coins = sheet.cell(cell.row, column).value
                         coins = str(coins)
                         coins = int(coins)
-                        coins += 14
+                        coins += 7
                         sheet.update_cell(cell.row, column, coins)
                     except Exception as e:
                         print(e)
-                        row = [ctx.author.id, 14, 0, 0, 0]
+                        row = [ctx.author.id, 7, 0, 0, 0]
                         index = sheet.row_count + 1
                         sheet.insert_row(row, index)
                     await guess.channel.send(ctx.author.mention + ', Thanks for playing!')
