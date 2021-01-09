@@ -312,7 +312,7 @@ async def add_coins(ctx, add_coins):
                 return False
             return True
         return inner_check
-    if ctx.author.id != 697628625150803989 and ctx.author.id != 713467569725767841 and ctx.author.id != 740609251772334180:
+    if ctx.author.id != 697628625150803989 and ctx.author.id != 713467569725767841 and ctx.author.id != 738111431152500796:
         return await ctx.send('You must own the bot to use this command!')
     if creds.access_token_expired:
         gs_client.login()
@@ -355,7 +355,7 @@ async def remove_coins(ctx, add_coins):
                 return False
             return True
         return inner_check
-    if ctx.author.id != 697628625150803989 and ctx.author.id != 713467569725767841 and ctx.author.id != 740609251772334180:
+    if ctx.author.id != 697628625150803989 and ctx.author.id != 713467569725767841 and ctx.author.id != 738111431152500796:
         return await ctx.send('You must own the bot to use this command!')
     if creds.access_token_expired:
         gs_client.login()
