@@ -500,7 +500,10 @@ async def post(ctx):
             body = {param_name: len(client.guilds)}
             headers = {'Authorization': auth}
             r = requests.post(url, data=body, headers=headers)
-            data += f'{web}:\n```{r.json()}```\n'
+            try:
+                data += f'{web}:\n```{r.json()}```\n'
+            except Exception as e:
+                data += f'{web}:\n```{e} (Error)```\n'
         await ctx.send(f'Posted server count! Results:\n\n{data}')
 @client.command()
 async def pay(ctx, member: discord.Member, amount):
