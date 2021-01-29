@@ -25,7 +25,7 @@ creds = ServiceAccountCredentials.from_json_keyfile_dict(json.loads(os.environ['
 gs_client = gspread.authorize(creds)
 dictionary = PyDictionary()
 
-client = commands.Bot(command_prefix="$", activity=discord.Activity(name="to Arunay come back || $help", type=discord.ActivityType.listening, emoji=discord.PartialEmoji(name='arunay', id=801236424115355668)))
+client = commands.Bot(command_prefix="$", activity=discord.Activity(name="to aadits-hangman.herokuapp.com", type=discord.ActivityType.listening))
 client.remove_command("help")
 client.add_check(commands.bot_has_permissions(send_messages=True).predicate)
 
@@ -246,7 +246,7 @@ async def help(ctx):
         return
     hex_number = random.randint(0,16777215)
     helpEmbed = discord.Embed(title='Help', color=hex_number)
-    helpEmbed.add_field(name='Commands', value='`$start` - Start AWESOME hangman game ! \n `$bal <member>` - Check how much coins you or another member has! \n `$shop` - Check out what you can buy with your coins!\n `$buy <item>` - buy an item from the `$shop`!\n `$servers` - See how many servers the bot is in!\n `$pay <@user> <amount of coins>` - Pay someone some coins!\n `$ping`, `$help` - It\'s kinds obvious what these are...')
+    helpEmbed.add_field(name='Commands', value='`$start` - Start AWESOME hangman game ! \n `$bal <member>` - Check how much coins you or another member has! \n `$shop` - Check out what you can buy with your coins!\n `$buy <item> <amount(Optional)` - buy an item from the `$shop`! If you dont add an amount, it defaults to 1.\n `$servers` - See how many servers the bot is in!\n `$pay <@user> <amount of coins>` - Pay someone some coins!\n `$ping`, `$help` - It\'s kinds obvious what these are...')
     helpEmbed.add_field(name='Playing Aadit\'s Hangman', value='There are three ways to play. One is on https://aadits-hangman.herokuapp.com . That is a hangman app I am developing. The second way is by cloning the repo on https://aadits-hangman.herokuapp.com/github, which will open a tkinter window. Be sure to read `README.md`! The last way is with the bot. Simply type `$start` in a channel I can access!')
     helpEmbed.add_field(name='Improving Aadit\'s hangman', value='You can improve our game by contacting me (https://aadits-hangman.herokuapp.com/contact) or by giving us anonymous feedback at https://aadits-hangman.herokuapp.com/feedback')
     helpEmbed.add_field(name='Still confused?', value='Join our [Support Server](https://discord.gg/CRGE5nF) and watch our [Video!](https://youtu.be/8DFSjOVh1QA)')
