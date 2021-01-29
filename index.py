@@ -25,7 +25,7 @@ creds = ServiceAccountCredentials.from_json_keyfile_dict(json.loads(os.environ['
 gs_client = gspread.authorize(creds)
 dictionary = PyDictionary()
 
-client = commands.Bot(command_prefix="$", activity=discord.Game(name="https://aadits-hangman.herokuapp.com || $help"))
+client = commands.Bot(command_prefix="$", activity=discord.Activity(name="to Arunay come back || $help", type=discord.ActivityType.listening, emoji=discord.PartialEmoji(name='arunay', id=801236424115355668)))
 client.remove_command("help")
 client.add_check(commands.bot_has_permissions(send_messages=True).predicate)
 
@@ -391,7 +391,7 @@ async def remove_coins(ctx, add_coins):
 async def buy_hint(ctx):
     await ctx.send('Hello! This command was recently changed to `$buy hint` instead of `$buy-hint`! ')
 @client.command()
-async def buy(ctx, item):
+async def buy(ctx, item, amount : int = 1):
     if ctx.author in authors:
         return
     if item == 'hint':
@@ -409,17 +409,18 @@ async def buy(ctx, item):
             coins = int(coins)
             hints = str(hints)
             hints = int(hints)
-            if coins < 5:
+            if coins < 5 * amount:
                 return await ctx.send('You don\'t have enough coins!')
-            coins -= 5
-            hints += 1
+            coins -= 5 * amount
+            hints += amount
             sheet.update_cell(cell.row, column, coins)
             sheet.update_cell(cell.row, column_h, hints)
-            await ctx.send('Success! You now have one more hint!')
+            await ctx.send(f'Success! You now have {amount} more hint!')
         except Exception as e:
             print(e)
             await ctx.send('You don\'t have any coins! Get coins by typing `$start` and win!')
     # Below is a new currency which has not been released yet
+    """
     elif item == 'defenition' or item == 'def':
         await ctx.send('Giving you a defenition...')
         if creds.access_token_expired:
@@ -445,6 +446,7 @@ async def buy(ctx, item):
         except Exception as e:
             print(e)
             await ctx.send('You don\'t have any coins! Get coins by typing `$start` and win!')
+    """
 @client.command()
 async def shop(ctx):
     if ctx.author in authors:
