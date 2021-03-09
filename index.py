@@ -25,7 +25,7 @@ creds = ServiceAccountCredentials.from_json_keyfile_dict(json.loads(os.environ['
 gs_client = gspread.authorize(creds)
 dictionary = PyDictionary()
 
-client = commands.Bot(command_prefix="$", activity=discord.Activity(name="to aadits-hangman.herokuapp.com", type=discord.ActivityType.listening))
+client = commands.Bot(command_prefix="$")
 client.remove_command("help")
 client.add_check(commands.bot_has_permissions(send_messages=True).predicate)
 
