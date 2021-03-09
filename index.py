@@ -1,5 +1,5 @@
 import discord
-from discord.ext import commands
+from discord.ext import commands, tasks
 from random_words import RandomWords
 import time
 import random
@@ -32,10 +32,31 @@ client.add_check(commands.bot_has_permissions(send_messages=True).predicate)
 rw = RandomWords()
 
 authors = []
+index = 0
+
+@tasks.loop(seconds=15)
+async def change_status():
+    global index
+    statuses = [
+        'https://aadits-hangman.herokuapp.com',
+        f'{len(client.guilds)} servers',
+        '$help || $start',
+        'Youtube',
+        'People winning hangman',
+        'Audit dev me',
+        'https://discord.gg/CRGE5nF',
+        'https://dsc.gg/hangman',
+        'for contributrions on https://github.com/aaditisawesome/aaditshangmanbot'
+    ]
+    await client.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name=statuses[index]))
+    index +=1
+    if index == len(statuses):
+        index = 0
 
 @client.event
 async def on_ready():
     print('Online!')
+    change_status.start()
 
 @client.command()
 async def start(ctx):
