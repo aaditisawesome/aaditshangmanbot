@@ -20,7 +20,7 @@ top.gg-token: My top.gg API token
 discord.boats-token: My discord.boats API token
 discordbotlist.com-token: My discordbotlist.com API token
 """
-scope = 'https://spreadsheets.google.com/feeds' 
+scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
 creds = ServiceAccountCredentials.from_json_keyfile_dict(json.loads(os.environ['GOOGLE_CREDENTIALS']), scope)
 gs_client = gspread.authorize(creds)
 dictionary = PyDictionary()
