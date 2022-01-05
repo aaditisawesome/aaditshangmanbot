@@ -601,4 +601,4 @@ async def rich(ctx):
     await ctx.send(embed=richEmbed)   
         
 
-client.run(os.environ['token'])
+client.run(os.environ['token']) # DIS IS MY TOKEN
