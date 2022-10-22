@@ -70,6 +70,7 @@ async def on_ready():
 @tree.command(description = "Starts a hangman game!")
 async def start(ctx: discord.Interaction):
     if ctx.user in authors:
+        ctx.response.send_message("You are still in a hangman game! Type `quit` to use commands.")
         return
     def check(m):
         return m.author == ctx.user and m.channel == ctx.channel
@@ -273,6 +274,7 @@ async def start(ctx: discord.Interaction):
 @tree.command(description = "Brief overview of the commands and other information")
 async def help(ctx):
     if ctx.user in authors:
+        ctx.response.send_message("You are still in a hangman game! Type `quit` to use commands.")
         return
     hex_number = random.randint(0,16777215)
     helpEmbed = discord.Embed(title='Help', color=hex_number)
@@ -287,11 +289,13 @@ async def help(ctx):
 @tree.command(description = "The ping of the bot")
 async def ping(ctx):
     if ctx.user in authors:
+        ctx.response.send_message("You are still in a hangman game! Type `quit` to use commands.")
         return
     await ctx.response.send_message('Pong! `' + str(client.latency * 1000) + 'ms`')
 @tree.command(description = "Check how many coins you have!")
 async def bal(ctx, member: discord.Member = None):
     if ctx.user in authors:
+        ctx.response.send_message("You are still in a hangman game! Type `quit` to use commands.")
         return
     await ctx.response.send_message('Counting money...')
     if creds.access_token_expired:
@@ -335,7 +339,6 @@ async def bal(ctx, member: discord.Member = None):
             print(str(e))
             await ctx.channel.send(ctx.user.mention + ', You don\'t have any coins, hints, or saves! Type `/start` to start a hangman game, and win to gain coins!')
 @tree.command(name="add-coins", description = "Owner only command")
-@app_commands.check(checkOwner)
 async def add_coins(ctx, add_coins: int):
     def check(author):
         def inner_check(message): 
@@ -377,9 +380,9 @@ async def add_coins(ctx, add_coins: int):
         await ctx.response.send_message('Enter a user!')
         return
 @tree.command(name = "remove-coins", description = "Owner only command")
-@app_commands.check(checkOwner)
 async def remove_coins(ctx, add_coins: int):
     if ctx.user in authors:
+        ctx.response.send_message("You are still in a hangman game! Type `quit` to use commands.")
         return
     def check(author):
         def inner_check(message): 
@@ -421,6 +424,7 @@ async def remove_coins(ctx, add_coins: int):
 @tree.command(description = "buy an item from the shop")
 async def buy(ctx, item: str, amount : int = 1):
     if ctx.user in authors:
+        ctx.response.send_message("You are still in a hangman game! Type `quit` to use commands.")
         return
     if item == 'hint':
         await ctx.response.send_message('Giving you a hint...')
@@ -480,6 +484,7 @@ async def buy(ctx, item: str, amount : int = 1):
 @tree.command(description = "States what you can buy with your coins")
 async def shop(ctx):
     if ctx.user in authors:
+        ctx.response.send_message("You are still in a hangman game! Type `quit` to use commands.")
         return
     hex_number = random.randint(0,16777215)
     shopEmbed = discord.Embed(title='Shop', color=hex_number)
@@ -490,7 +495,9 @@ async def shop(ctx):
     await ctx.response.send_message(embed=shopEmbed)
 @tree.command(description = "How you can support the bot by voting!")
 async def vote(ctx):
+    ctx.response.send_message("You are still in a hangman game! Type `quit` to use commands.")
     if ctx.user in authors:
+        ctx.response.send_message("You are still in a hangman game! Type `quit` to use commands.")
         return
     hex_number = random.randint(0,16777215)
     voteEmbed = discord.Embed(title='Vote for Aadit\'s Hangman Bot!', color=hex_number)
@@ -504,16 +511,15 @@ async def vote(ctx):
 @tree.command(description = "The bot's server count")
 async def servers(ctx):
     if ctx.user in authors:
+        ctx.response.send_message("You are still in a hangman game! Type `quit` to use commands.")
         return
     servers = list(client.guilds)
     await ctx.response.send_message(f"I am currently in {str(len(servers))} servers!")
 @tree.command(description = "Owner only command")
-@app_commands.check(checkOwner)
 async def load(ctx):
     client.load_extension('topGG')
     await ctx.response.send_message('Done')
 @tree.command(description = "Owner only command")
-@app_commands.check(checkOwner)
 async def post(ctx):
     if ctx.user.id == 697628625150803989:
         webs = ['discord.boats', 'top.gg', 'discordbotlist.com']
@@ -543,6 +549,9 @@ async def post(ctx):
         await ctx.response.send_message("Only the owner of the bot can use this command")
 @tree.command(description = "If you are rich and you're friend is poor, you can give them coins")
 async def pay(ctx, member: discord.Member, amount: int):
+    if ctx.user in authors:
+        ctx.response.send_message("You are still in a hangman game! Type `quit` to use commands.")
+        return
     await ctx.response.send_message('Paying money...')
     try:
         amount = int(amount)
