@@ -27,7 +27,6 @@ gs_client = gspread.authorize(creds)
 dictionary = PyDictionary()
 
 intents = discord.Intents.default();
-intents.message_content = True
 
 client = commands.Bot(command_prefix="/", intents=intents)
 client.remove_command("help")
