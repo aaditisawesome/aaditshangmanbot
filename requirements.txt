@@ -5,5 +5,3 @@ PyDictionary==2.0.1
 pypresence==4.0.0
 RandomWords==0.3.0
 Requests==2.28.1
-~equests==2.24.0
-~spread==0.6.2
