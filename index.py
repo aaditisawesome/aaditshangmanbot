@@ -1,4 +1,6 @@
 import discord
+from discord import app_commands
+from discord.app_commands import CommandTree
 from discord.ext import commands, tasks
 from random_words import RandomWords
 import time
@@ -13,7 +15,6 @@ import json
 
 """
 Config Vars
-
 GOOGLE_CREDENTIALS: The credentials I have to log in to my Google API account to connect to gspread
 token: The token of my bot
 top.gg-token: My top.gg API token
@@ -28,11 +29,16 @@ dictionary = PyDictionary()
 client = commands.Bot(command_prefix="$")
 client.remove_command("help")
 client.add_check(commands.bot_has_permissions(send_messages=True).predicate)
+tree = client.tree
 
 rw = RandomWords()
 
 authors = []
 index = 0
+
+def checkOwner(ctx):
+    return ctx.user.id == 697628625150803989 or ctx.user.id == 713467569725767841 or ctx.user.id == 692195032857444412
+
 
 @tasks.loop(seconds=15)
 async def change_status():
@@ -40,7 +46,7 @@ async def change_status():
     statuses = [
         'https://aadits-hangman.herokuapp.com',
         f'{len(client.guilds)} servers',
-        '$help || $start',
+        '/help || /start',
         'Youtube',
         'People winning hangman',
         'Audit dev me',
@@ -57,29 +63,30 @@ async def change_status():
 async def on_ready():
     print('Online!')
     change_status.start()
+    await tree.sync()
 
-@client.command()
-async def start(ctx):
-    if ctx.author in authors:
+@tree.command(description = "Starts a hangman game!")
+async def start(ctx: discord.Interaction):
+    if ctx.user in authors:
         return
     def check(m):
-        return m.author == ctx.author and m.channel == ctx.channel
+        return m.author == ctx.user and m.channel == ctx.channel
     word = rw.random_word()
     cl = ""
     wl = ""
     tries = 9
     print(word)
-    authors.append(ctx.author)
-    await ctx.send('Starting hangman game... type "quit" anytime to quit.')
+    authors.append(ctx.user)
+    await ctx.response.send_message('Starting hangman game... type "quit" anytime to quit.')
     time.sleep(0.5)
     pic = 'hangman-0.png'
     while True:
         try:
             cl_txt = ""
             try:
-                await guess.channel.send(ctx.author.mention + ', What is your guess?')
+                await guess.channel.send(ctx.user.mention + ', What is your guess?')
             except UnboundLocalError:
-                await ctx.send(ctx.author.mention + ', ' + ('＿  ' * len(word)) + '\nWhat is your guess?')
+                await ctx.channel.send(ctx.user.mention + ', ' + ('＿  ' * len(word)) + '\nWhat is your guess?')
             guess = await client.wait_for('message', check=check)
             str_guess = str(guess.content.lower())
             print(guess)
@@ -88,12 +95,12 @@ async def start(ctx):
                 await guess.channel.send('Thanks for playing! The game is over')
                 break
             elif str_guess == 'hint':
-                await ctx.send('Please give me a moment')
+                await ctx.channel.send('Please give me a moment')
                 if creds.access_token_expired:
                     gs_client.login()
                 sheet = gs_client.open('Hangman bot').sheet1
                 try:
-                    cell = sheet.find(str(ctx.author.id))
+                    cell = sheet.find(str(ctx.user.id))
                     column = cell.col + 2
                     print(column)
                     print(cell.col)
@@ -101,7 +108,7 @@ async def start(ctx):
                     hints = str(hints)
                     hints = int(hints)
                     if hints == 0:
-                        await ctx.send('You don\'t have any hints! They cost 5 coins each! When the game is over, you can buy hints by typing `$buy hint`!')
+                        await ctx.channel.send('You don\'t have any hints! They cost 5 coins each! When the game is over, you can buy hints by typing `/buy hint`!')
                     else:
                         hints -= 1
                         sheet.update_cell(cell.row, column, hints)
@@ -116,16 +123,16 @@ async def start(ctx):
                             else:
                                 cl_txt += '＿  '
                         if wl == "":
-                            await guess.channel.send('👌 ' + ctx.author.mention + ', a letter has been revealed for you, and you used one hint!!\n ' + cl_txt + '\n **Wrong Letters:** None\nYou still have ' + str(tries) + ' wrong tries left! Please wait for a moment...', file=discord.File(pic))
+                            await guess.channel.send('👌 ' + ctx.user.mention + ', a letter has been revealed for you, and you used one hint!!\n ' + cl_txt + '\n **Wrong Letters:** None\nYou still have ' + str(tries) + ' wrong tries left! Please wait for a moment...', file=discord.File(pic))
                         else:
-                            await guess.channel.send('👌 ' + ctx.author.mention + ', a letter has been revealed for you, and you used one hint!!\n ' + cl_txt + '\n **Wrong Letters:** ' + wl + '\nYou still have ' + str(tries) + ' wrong tries left! Please wait for a moment...', file=discord.File(pic))
+                            await guess.channel.send('👌 ' + ctx.user.mention + ', a letter has been revealed for you, and you used one hint!!\n ' + cl_txt + '\n **Wrong Letters:** ' + wl + '\nYou still have ' + str(tries) + ' wrong tries left! Please wait for a moment...', file=discord.File(pic))
                         if '＿' not in cl_txt:
-                            await guess.channel.send(ctx.author.mention + ', :tada: You won! :tada: You got 7 coins, and the game is over. Please wait a moment...')
+                            await guess.channel.send(ctx.user.mention + ', :tada: You won! :tada: You got 7 coins, and the game is over. Please wait a moment...')
                             if creds.access_token_expired:
                                 gs_client.login()
                             sheet = gs_client.open('Hangman bot').sheet1
                             try:
-                                cell = sheet.find(str(ctx.author.id))
+                                cell = sheet.find(str(ctx.user.id))
                                 column = cell.col + 1
                                 print(column)
                                 print(cell.col)
@@ -136,20 +143,20 @@ async def start(ctx):
                                 sheet.update_cell(cell.row, column, coins)
                             except Exception as e:
                                 print(e)
-                                row = [ctx.author.id, 7, 0, 0, 0]
+                                row = [ctx.user.id, 7, 0, 0, 0]
                                 index = sheet.row_count + 1
                                 sheet.insert_row(row, index)
-                            await guess.channel.send(ctx.author.mention + ', Thanks for playing!')
+                            await guess.channel.send(ctx.user.mention + ', Thanks for playing!')
                             break
                 except:
-                    await ctx.send('You don\'t have any hints! They cost 5 coins each! When the game is over, you can buy hints by typing `$buy hint`!')
+                    await ctx.channel.send('You don\'t have any hints! They cost 5 coins each! When the game is over, you can buy hints by typing `/buy hint`!')
             elif str_guess == 'save':
-                await ctx.send('Please give me a moment')
+                await ctx.channel.send('Please give me a moment')
                 if creds.access_token_expired:
                     gs_client.login()
                 sheet = gs_client.open('Hangman bot').sheet1
                 try:
-                    cell = sheet.find(str(ctx.author.id))
+                    cell = sheet.find(str(ctx.user.id))
                     column = cell.col + 3
                     print(column)
                     print(cell.col)
@@ -157,7 +164,7 @@ async def start(ctx):
                     saves = str(saves)
                     saves = int(saves)
                     if saves == 0:
-                        await ctx.send('You don\'t have any saves! For now, the only way to get saves are by winning giveaways in https://discord.gg/CRGE5nF !')
+                        await ctx.channel.send('You don\'t have any saves! For now, the only way to get saves are by winning giveaways in https://discord.gg/CRGE5nF !')
                     else:
                         saves -= 1
                         sheet.update_cell(cell.row, column, saves)
@@ -165,17 +172,17 @@ async def start(ctx):
                         pic = 'hangman-' + str(9 - tries) + '.png'
                         if pic == 'hangman--1.png':
                             pic = 'hangman-0.png'
-                        await guess.channel.send('👌 ' + ctx.author.mention + ', you now have an extra try!', file=discord.File(pic))
+                        await guess.channel.send('👌 ' + ctx.user.mention + ', you now have an extra try!', file=discord.File(pic))
                 except Exception as e:
                     print(e)
-                    await ctx.send('You don\'t have any saves! For now, the only way to get saves are by winning giveaways in https://discord.gg/CRGE5nF !')
+                    await ctx.channel.send('You don\'t have any saves! For now, the only way to get saves are by winning giveaways in https://discord.gg/CRGE5nF !')
             elif str_guess == 'defenition' or str_guess == 'def':
-                await ctx.send('Please give me a moment')
+                await ctx.channel.send('Please give me a moment')
                 if creds.access_token_expired:
                     gs_client.login()
                 sheet = gs_client.open('Hangman bot').sheet1
                 try:
-                    cell = sheet.find(str(ctx.author.id))
+                    cell = sheet.find(str(ctx.user.id))
                     column = cell.col + 2
                     print(column)
                     print(cell.col)
@@ -183,7 +190,7 @@ async def start(ctx):
                     hints = str(hints)
                     hints = int(hints)
                     if hints == 0:
-                        await ctx.send('You don\'t have any defenitions! They cost 7 coins each! When the game is over, you can buy hints by typing `$buy defenition`!')
+                        await ctx.channel.send('You don\'t have any defenitions! They cost 7 coins each! When the game is over, you can buy hints by typing `/buy defenition`!')
                     else:
                         defenition = 'Here are the defenitions of the word:\n'
                         for pos in dictionary.meaning(word):
@@ -192,9 +199,9 @@ async def start(ctx):
                             for meaning in dictionary.meaning(word)[pos]:
                                 x+=1
                                 defenition += f'{str(x)}. {meaning}\n'
-                        await ctx.send(defenition)
+                        await ctx.channel.send(defenition)
                 except:
-                    await ctx.send('You don\'t have any defenitions! They cost 7 coins each! When the game is over, you can buy hints by typing `$buy defenition`!')
+                    await ctx.channel.send('You don\'t have any defenitions! They cost 7 coins each! When the game is over, you can buy hints by typing `/buy defenition`!')
             elif len(str_guess) != 1:
                 await guess.channel.send('You can only send one letter!')
             elif str_guess in cl or str_guess in wl:
@@ -204,9 +211,9 @@ async def start(ctx):
                     else:
                         cl_txt += '＿  '
                 if wl == "":
-                    await guess.channel.send(ctx.author.mention + ', You have already said this letter\n' + cl_txt + '\n **Wrong Letters:** None\nYou still have ' + str(tries) + ' wrong tries left! Please wait for a moment...', file=discord.File(pic))
+                    await guess.channel.send(ctx.user.mention + ', You have already said this letter\n' + cl_txt + '\n **Wrong Letters:** None\nYou still have ' + str(tries) + ' wrong tries left! Please wait for a moment...', file=discord.File(pic))
                 else:
-                    await guess.channel.send(ctx.author.mention + ', You have already said this letter\n' + cl_txt + '\n **Wrong Letters:** ' + wl + '\nYou still have ' + str(tries) + ' wrong tries left! Please wait for a moment...', file=discord.File(pic))
+                    await guess.channel.send(ctx.user.mention + ', You have already said this letter\n' + cl_txt + '\n **Wrong Letters:** ' + wl + '\nYou still have ' + str(tries) + ' wrong tries left! Please wait for a moment...', file=discord.File(pic))
             elif str_guess in word:
                 cl += str_guess
                 for letter in word:
@@ -215,16 +222,16 @@ async def start(ctx):
                     else:
                         cl_txt += '＿  '
                 if wl == "":
-                    await guess.channel.send('✅ ' + ctx.author.mention + ', "' + str_guess + '" is in the word!\n ' + cl_txt + '\n **Wrong Letters:** None\nYou still have ' + str(tries) + ' wrong tries left! Please wait for a moment...', file=discord.File(pic))
+                    await guess.channel.send('✅ ' + ctx.user.mention + ', "' + str_guess + '" is in the word!\n ' + cl_txt + '\n **Wrong Letters:** None\nYou still have ' + str(tries) + ' wrong tries left! Please wait for a moment...', file=discord.File(pic))
                 else:
-                    await guess.channel.send('✅ ' + ctx.author.mention + ', "' + str_guess + '" is in the word!\n ' + cl_txt + '\n **Wrong Letters:** ' + wl + '\nYou still have ' + str(tries) + ' wrong tries left! Please wait for a moment...', file=discord.File(pic))
+                    await guess.channel.send('✅ ' + ctx.user.mention + ', "' + str_guess + '" is in the word!\n ' + cl_txt + '\n **Wrong Letters:** ' + wl + '\nYou still have ' + str(tries) + ' wrong tries left! Please wait for a moment...', file=discord.File(pic))
                 if '＿' not in cl_txt:
-                    await guess.channel.send(ctx.author.mention + ', :tada: You won! :tada: You got 7 coins, and the game is over. Please wait a moment...')
+                    await guess.channel.send(ctx.user.mention + ', :tada: You won! :tada: You got 7 coins, and the game is over. Please wait a moment...')
                     if creds.access_token_expired:
                         gs_client.login()
                     sheet = gs_client.open('Hangman bot').sheet1
                     try:
-                        cell = sheet.find(str(ctx.author.id))
+                        cell = sheet.find(str(ctx.user.id))
                         column = cell.col + 1
                         print(column)
                         print(cell.col)
@@ -235,10 +242,10 @@ async def start(ctx):
                         sheet.update_cell(cell.row, column, coins)
                     except Exception as e:
                         print(e)
-                        row = [ctx.author.id, 7, 0, 0, 0]
+                        row = [ctx.user.id, 7, 0, 0, 0]
                         index = sheet.row_count + 1
                         sheet.insert_row(row, index)
-                    await guess.channel.send(ctx.author.mention + ', Thanks for playing!')
+                    await guess.channel.send(ctx.user.mention + ', Thanks for playing!')
                     break
             else:                
                 tries -= 1
@@ -249,48 +256,48 @@ async def start(ctx):
                     else:
                         cl_txt += '＿  '
                 pic = 'hangman-' + str(9 - tries) + '.png'
-                await guess.channel.send('🔴 ' + ctx.author.mention + ', "' + str_guess + '" is not in the word :( !\n ' + cl_txt + '\n **Wrong Letters:** ' + wl + '\n' + str(tries) + ' wrong tries left! Please wait for a moment...', file=discord.File(pic))
+                await guess.channel.send('🔴 ' + ctx.user.mention + ', "' + str_guess + '" is not in the word :( !\n ' + cl_txt + '\n **Wrong Letters:** ' + wl + '\n' + str(tries) + ' wrong tries left! Please wait for a moment...', file=discord.File(pic))
                 if tries == 0:
-                    await guess.channel.send(ctx.author.mention + ', You lost! The game is over. 👎')
-                    await guess.channel.send('The word was ' + word + ", " + ctx.author.mention)
+                    await guess.channel.send(ctx.user.mention + ', You lost! The game is over. 👎')
+                    await guess.channel.send('The word was ' + word + ", " + ctx.user.mention)
                     break
                 print(word)
                 print(str_guess)
         except Exception as e:
-            await ctx.send("OOF! There was an error... DM <@697628625150803989> with this Error: `" + str(e) + '`')
+            await ctx.channel.send("OOF! There was an error... DM <@697628625150803989> with this Error: `" + str(e) + '`')
             break
-    authors.remove(ctx.author)
+    authors.remove(ctx.user)
 
-@client.command()
+@tree.command(description = "Brief overview of the commands and other information")
 async def help(ctx):
-    if ctx.author in authors:
+    if ctx.user in authors:
         return
     hex_number = random.randint(0,16777215)
     helpEmbed = discord.Embed(title='Help', color=hex_number)
-    helpEmbed.add_field(name='Commands', value='`$start` - Start AWESOME hangman game ! \n `$bal <member>` - Check how much coins you or another member has! \n `$shop` - Check out what you can buy with your coins!\n `$buy <item> <amount(Optional)` - buy an item from the `$shop`! If you dont add an amount, it defaults to 1.\n `$servers` - See how many servers the bot is in!\n `$pay <@user> <amount of coins>` - Pay someone some coins!\n `$ping`, `$help` - It\'s kinds obvious what these are...')
-    helpEmbed.add_field(name='Playing Aadit\'s Hangman', value='There are three ways to play. One is on https://aadits-hangman.herokuapp.com . That is a hangman app I am developing. The second way is by cloning the repo on https://aadits-hangman.herokuapp.com/github, which will open a tkinter window. Be sure to read `README.md`! The last way is with the bot. Simply type `$start` in a channel I can access!')
+    helpEmbed.add_field(name='Commands', value='`/start` - Start AWESOME hangman game ! \n `/bal <member>` - Check how much coins you or another member has! \n `/shop` - Check out what you can buy with your coins!\n `/buy <item> <amount(Optional)>` - buy an item from the `/shop`! If you dont add an amount, it defaults to 1.\n `/servers` - See how many servers the bot is in!\n `/pay <@user> <amount of coins>` - Pay someone some coins!\n `/ping`, `/help` - It\'s kinds obvious what these are...')
+    helpEmbed.add_field(name='Playing Aadit\'s Hangman', value='There are three ways to play. One is on https://aadits-hangman.herokuapp.com . That is a hangman app I am developing. The second way is by cloning the repo on https://aadits-hangman.herokuapp.com/github, which will open a tkinter window. Be sure to read `README.md`! The last way is with the bot. Simply type `/start` in a channel I can access!')
     helpEmbed.add_field(name='Improving Aadit\'s hangman', value='You can improve our game by contacting me (https://aadits-hangman.herokuapp.com/contact) or by giving us anonymous feedback at https://aadits-hangman.herokuapp.com/feedback')
     helpEmbed.add_field(name='Still confused?', value='Join our [Support Server](https://discord.gg/CRGE5nF) and watch our [Video!](https://youtu.be/8DFSjOVh1QA)')
-    helpEmbed.add_field(name='Enjoying the bot?', value='If you want to add Aadit\'s Hangman Bot to your own server so your members can play hangman, click [HERE!](https://discord.com/oauth2/authorize?client_id=748670819156099073&scope=bot&permissions=3072) Also, please see (`$vote`) if you want to get good prizes!')
+    helpEmbed.add_field(name='Enjoying the bot?', value='If you want to add Aadit\'s Hangman Bot to your own server so your members can play hangman, click [HERE!](https://discord.com/oauth2/authorize?client_id=748670819156099073&scope=bot&permissions=3072) Also, please see (`/vote`) if you want to get good prizes!')
     helpEmbed.timestamp = datetime.datetime.now()
     helpEmbed.set_footer(text='Thank you so much!')
-    await ctx.send('https://discord.gg/CRGE5nF', embed=helpEmbed)
-@client.command()
+    await ctx.response.send_message('https://discord.gg/CRGE5nF', embed=helpEmbed)
+@tree.command(description = "The ping of the bot")
 async def ping(ctx):
-    if ctx.author in authors:
+    if ctx.user in authors:
         return
-    await ctx.send('Pong! `' + str(client.latency * 1000) + 'ms`')
-@client.command()
-async def bal(ctx):
-    if ctx.author in authors:
+    await ctx.response.send_message('Pong! `' + str(client.latency * 1000) + 'ms`')
+@tree.command(description = "Check how many coins you have!")
+async def bal(ctx, member: discord.Member = None):
+    if ctx.user in authors:
         return
-    await ctx.send('Counting money...')
+    await ctx.response.send_message('Counting money...')
     if creds.access_token_expired:
         gs_client.login()
     sheet = gs_client.open('Hangman bot').sheet1
-    if len(ctx.message.mentions):
+    if member != None:
         try:
-            cell_m = sheet.find(str(ctx.message.mentions[0].id))
+            cell_m = sheet.find(str(member.id))
             column = cell_m.col + 1
             column_h = cell_m.col + 2
             coins = sheet.cell(cell_m.row, column).value
@@ -302,39 +309,40 @@ async def bal(ctx):
             print(cell_m.col)
             saves_m = sheet.cell(cell_m.row, column_s).value
             saves_m = str(saves_m)
-            await ctx.send(ctx.message.mentions[0].mention + ' has ' + coins + ' coins! \n They also have ' + hints + ' hints and ' + saves_m + ' saves!')
+            await ctx.channel.send(member.mention + ' has ' + coins + ' coins! \n They also have ' + hints + ' hints and ' + saves_m + ' saves!')
         except Exception as e:
             print(str(e))
-            await ctx.send(ctx.message.mentions[0].mention + ' doesn\'t have any coins, hints or saves!')
+            await ctx.channel.send(member.mention + ' doesn\'t have any coins, hints or saves!')
     else:
         try:
-            cell = sheet.find(str(ctx.author.id))
+            cell = sheet.find(str(ctx.user.id))
             column = cell.col + 1
             column_h = cell.col + 2
             coins = sheet.cell(cell.row, column).value
             coins = str(coins)
             hints = sheet.cell(cell.row, column_h).value
             hints = str(hints)
-            cell = sheet.find(str(ctx.author.id))
+            cell = sheet.find(str(ctx.user.id))
             column_s = cell.col + 3
             print(column)
             print(cell.col)
             saves = sheet.cell(cell.row, column_s).value
             saves = str(saves)
-            await ctx.send(ctx.author.mention + ', You have ' + coins + ' coins! \n You also have ' + hints + ' hints and ' + saves + ' saves!')
+            await ctx.channel.send(ctx.user.mention + ', You have ' + coins + ' coins! \n You also have ' + hints + ' hints and ' + saves + ' saves!')
         except Exception as e:
             print(str(e))
-            await ctx.send(ctx.author.mention + ', You don\'t have any coins, hints, or saves! Type `$start` to start a hangman game, and win to gain coins!')
-@client.command(aliases=["add-coins"])
-async def add_coins(ctx, add_coins):
+            await ctx.channel.send(ctx.user.mention + ', You don\'t have any coins, hints, or saves! Type `/start` to start a hangman game, and win to gain coins!')
+@tree.command(name="add-coins", description = "Owner only command")
+@app_commands.check(checkOwner)
+async def add_coins(ctx, add_coins: int):
     def check(author):
         def inner_check(message): 
-            if ctx.author != author:
+            if ctx.user != author:
                 return False
             return True
         return inner_check
-    if ctx.author.id != 697628625150803989 and ctx.author.id != 713467569725767841 and ctx.author.id != 692195032857444412:
-        return await ctx.send('You must own the bot to use this command!')
+    if ctx.user.id != 697628625150803989 and ctx.user.id != 713467569725767841 and ctx.user.id != 692195032857444412:
+        return await ctx.reponse.send_message('You must own the bot to use this command!')
     if creds.access_token_expired:
         gs_client.login()
     sheet = gs_client.open('Hangman bot').sheet1
@@ -342,7 +350,7 @@ async def add_coins(ctx, add_coins):
         add_coins = str(add_coins)
         add_coins = int(add_coins)
     except NameError as e:
-        await ctx.send('Enter a number!')
+        await ctx.response.send_message('Enter a number!')
         print(str(e))
         return
 
@@ -362,31 +370,31 @@ async def add_coins(ctx, add_coins):
             row = [ctx.message.mentions[0].id, add_coins, 0, 0, 0]
             index = sheet.row_count + 1
             sheet.insert_row(row, index)
-        await ctx.send('Success!')
+        await ctx.respone.send_message('Success!')
     else:
-        await ctx.send('Enter a user!')
+        await ctx.response.send_message('Enter a user!')
         return
-@client.command(aliases=["remove-coins"])
-async def remove_coins(ctx, add_coins):
-    if ctx.author in authors:
+@tree.command(name = "remove-coins", description = "Owner only command")
+@app_commands.check(checkOwner)
+async def remove_coins(ctx, add_coins: int):
+    if ctx.user in authors:
         return
     def check(author):
         def inner_check(message): 
-            if ctx.author != author:
+            if ctx.user != author:
                 return False
             return True
         return inner_check
-    if ctx.author.id != 697628625150803989 and ctx.author.id != 713467569725767841 and ctx.author.id != 692195032857444412:
-        return await ctx.send('You must own the bot to use this command!')
+    if ctx.user.id != 697628625150803989 and ctx.user.id != 713467569725767841 and ctx.user.id != 692195032857444412:
+        return await ctx.response.send_message('You must own the bot to use this command!')
     if creds.access_token_expired:
         gs_client.login()
     sheet = gs_client.open('Hangman bot').sheet1
-    await ctx.send('How many coins should I remove?')
     try:
         add_coins = str(add_coins)
         add_coins = int(add_coins)
     except Exception as e:
-        await ctx.send('Enter a number!')
+        await ctx.response.send_message('Enter a number!')
         print(str(e))
         return
 
@@ -403,25 +411,22 @@ async def remove_coins(ctx, add_coins):
             sheet.update_cell(cell.row, column, coins)
         except Exception as e:
             print(e)
-            await ctx.send('This user doesn\'t have any coins!')
-        await ctx.send('Success!')
+            await ctx.response.send_message('This user doesn\'t have any coins!')
+        await ctx.response.send_message('Success!')
     else:
-        await ctx.send('Enter a user!')
+        await ctx.response.send_message('Enter a user!')
         return
-@client.command(aliases=["buy-hint"])
-async def buy_hint(ctx):
-    await ctx.send('Hello! This command was recently changed to `$buy hint` instead of `$buy-hint`! ')
-@client.command()
-async def buy(ctx, item, amount : int = 1):
-    if ctx.author in authors:
+@tree.command(description = "buy an item from the shop")
+async def buy(ctx, item: str, amount : int = 1):
+    if ctx.user in authors:
         return
     if item == 'hint':
-        await ctx.send('Giving you a hint...')
+        await ctx.response.send_message('Giving you a hint...')
         if creds.access_token_expired:
             gs_client.login()
         sheet = gs_client.open('Hangman bot').sheet1
         try:
-            cell = sheet.find(str(ctx.author.id))
+            cell = sheet.find(str(ctx.user.id))
             column = cell.col + 1
             column_h = cell.col + 2
             coins = sheet.cell(cell.row, column).value
@@ -431,15 +436,17 @@ async def buy(ctx, item, amount : int = 1):
             hints = str(hints)
             hints = int(hints)
             if coins < 5 * amount:
-                return await ctx.send('You don\'t have enough coins!')
+                return await ctx.channel.send('You don\'t have enough coins!')
             coins -= 5 * amount
             hints += amount
             sheet.update_cell(cell.row, column, coins)
             sheet.update_cell(cell.row, column_h, hints)
-            await ctx.send(f'Success! You now have {amount} more hint!')
+            await ctx.channel.send(f'Success! You now have {amount} more hint!')
         except Exception as e:
             print(e)
-            await ctx.send('You don\'t have any coins! Get coins by typing `$start` and win!')
+            await ctx.channel.send('You don\'t have any coins! Get coins by typing `/start` and win!')
+    else:
+        await ctx.response.send_message("That is an invalid item. Please see `/shop`")
     # Below is a new currency which has not been released yet
     """
     elif item == 'defenition' or item == 'def':
@@ -448,7 +455,7 @@ async def buy(ctx, item, amount : int = 1):
             gs_client.login()
         sheet = gs_client.open('Hangman bot').sheet1
         try:
-            cell = sheet.find(str(ctx.author.id))
+            cell = sheet.find(str(ctx.user.id))
             column = cell.col + 1
             column_d = cell.col + 4
             coins = sheet.cell(cell.row, column).value
@@ -466,22 +473,22 @@ async def buy(ctx, item, amount : int = 1):
             await ctx.send('Success! You now have one more hint!')
         except Exception as e:
             print(e)
-            await ctx.send('You don\'t have any coins! Get coins by typing `$start` and win!')
+            await ctx.send('You don\'t have any coins! Get coins by typing `/start` and win!')
     """
-@client.command()
+@tree.command(description = "States what you can buy with your coins")
 async def shop(ctx):
-    if ctx.author in authors:
+    if ctx.user in authors:
         return
     hex_number = random.randint(0,16777215)
     shopEmbed = discord.Embed(title='Shop', color=hex_number)
-    shopEmbed.add_field(name='Hints', value='**Cost**: 5 coins\n**How to buy:** `$buy hint`\n**How to use:** When you are in the middle of a game, type "hint" instead of a letter to use.\n**Effects:** Reveals one letter of the word for you!')
-    shopEmbed.add_field(name='Saves', value='**Cost**: Can only be obtained by [giveaways](https://discord.gg/CRGE5nF) or by voting (see `$vote`)\n**How to use:** When you are in the middle of a game, type "save" instead of a letter to use.\n**Effects:** Gives you an extra try!!')
+    shopEmbed.add_field(name='Hints', value='**Cost**: 5 coins\n**How to buy:** `/buy hint`\n**How to use:** When you are in the middle of a game, type "hint" instead of a letter to use.\n**Effects:** Reveals one letter of the word for you!')
+    shopEmbed.add_field(name='Saves', value='**Cost**: Can only be obtained by [giveaways](https://discord.gg/CRGE5nF) or by voting (see `/vote`)\n**How to use:** When you are in the middle of a game, type "save" instead of a letter to use.\n**Effects:** Gives you an extra try!!')
     shopEmbed.timestamp = datetime.datetime.now()
     shopEmbed.set_footer(text='More things coming soon!')
-    await ctx.send(embed=shopEmbed)
-@client.command()
+    await ctx.response.send_message(embed=shopEmbed)
+@tree.command(description = "How you can support the bot by voting!")
 async def vote(ctx):
-    if ctx.author in authors:
+    if ctx.user in authors:
         return
     hex_number = random.randint(0,16777215)
     voteEmbed = discord.Embed(title='Vote for Aadit\'s Hangman Bot!', color=hex_number)
@@ -491,20 +498,22 @@ async def vote(ctx):
     voteEmbed.add_field(name='Vote for our server!', value='[top.gg](https://top.gg/servers/748672765837705337)')
     voteEmbed.timestamp = datetime.datetime.now()
     voteEmbed.set_footer(text='TYSM for voting!')
-    await ctx.send(embed=voteEmbed)
-@client.command()
+    await ctx.response.send_message(embed=voteEmbed)
+@tree.command(description = "The bot's server count")
 async def servers(ctx):
-    if ctx.author in authors:
+    if ctx.user in authors:
         return
     servers = list(client.guilds)
-    await ctx.send(f"I am currently in {str(len(servers))} servers!")
-@client.command()
+    await ctx.response.send_message(f"I am currently in {str(len(servers))} servers!")
+@tree.command(description = "Owner only command")
+@app_commands.check(checkOwner)
 async def load(ctx):
     client.load_extension('topGG')
-    await ctx.send('Done')
-@client.command()
+    await ctx.response.send_message('Done')
+@tree.command(description = "Owner only command")
+@app_commands.check(checkOwner)
 async def post(ctx):
-    if ctx.author.id == 697628625150803989:
+    if ctx.user.id == 697628625150803989:
         webs = ['discord.boats', 'top.gg', 'discordbotlist.com']
         data = ""
         for web in webs:
@@ -527,19 +536,21 @@ async def post(ctx):
                 data += f'{web}:\n```{r.json()}```\n'
             except Exception as e:
                 data += f'{web}:\n```{e} (Error)```\n'
-        await ctx.send(f'Posted server count! Results:\n\n{data}')
-@client.command()
-async def pay(ctx, member: discord.Member, amount):
-    await ctx.send('Paying money...')
+        await ctx.response.send_message(f'Posted server count! Results:\n\n{data}')
+    else:
+        await ctx.response.send_message("Only the owner of the bot can use this command")
+@tree.command(description = "If you are rich and you're friend is poor, you can give them coins")
+async def pay(ctx, member: discord.Member, amount: int):
+    await ctx.response.send_message('Paying money...')
     try:
         amount = int(amount)
     except:
-        return await ctx.send('The amount must be an integer!')
+        return await ctx.channel.send('The amount must be an integer!')
     if creds.access_token_expired:
         gs_client.login()
     sheet = gs_client.open('Hangman bot').sheet1
     try:
-        cell = sheet.find(str(ctx.author.id))
+        cell = sheet.find(str(ctx.user.id))
         column = cell.col + 1
         print(column)
         print(cell.col)
@@ -547,12 +558,12 @@ async def pay(ctx, member: discord.Member, amount):
         coins = str(coins)
         coins = int(coins)
         if coins < amount:
-            return await ctx.send('You don\'t have that much coins!')
+            return await ctx.channel.send('You don\'t have that much coins!')
         coins -= amount
         sheet.update_cell(cell.row, column, coins)
     except Exception as e:
         print(e)
-        await ctx.send('You don\'t have that much coins!')
+        await ctx.channel.send('You don\'t have that much coins!')
     try:
         cell = sheet.find(str(member.id))
         column = cell.col + 1
@@ -568,14 +579,14 @@ async def pay(ctx, member: discord.Member, amount):
         row = [member.id, amount, 0, 0, 0]
         index = sheet.row_count + 1
         sheet.insert_row(row, index)  
-    await ctx.send(f'Successfully gave {member.mention} {amount} coins!')
-@client.command()
+    await ctx.channel.send(f'Successfully gave {member.mention} {amount} coins!')
+@tree.command(description = "See the richest people in the bot!")
 async def rich(ctx):
     hex_number = random.randint(0,16777215)
     richEmbed = discord.Embed(title='Rich', color=hex_number)
-    if ctx.author in authors:
+    if ctx.user in authors:
         return
-    await ctx.send('Getting richest users...')
+    await ctx.response.send_message('Getting richest users...')
     if creds.access_token_expired:
         gs_client.login()
     sheet = gs_client.open('Hangman bot').sheet1
@@ -598,7 +609,6 @@ async def rich(ctx):
         except ValueError as e:
             print("The list of coins length < 5")
     richEmbed.set_footer(text='Credit for this command goes to CodeMyGame#0923')
-    await ctx.send(embed=richEmbed)   
+    await ctx.channel.send(embed=richEmbed)   
         
-
 client.run(os.environ['token']) # DIS IS MY TOKEN
