@@ -26,7 +26,10 @@ creds = ServiceAccountCredentials.from_json_keyfile_dict(json.loads(os.environ['
 gs_client = gspread.authorize(creds)
 dictionary = PyDictionary()
 
-client = commands.Bot(command_prefix="$")
+intents = discord.Intents.default();
+intents.message_content = True
+
+client = commands.Bot(command_prefix="/", intents=intents)
 client.remove_command("help")
 client.add_check(commands.bot_has_permissions(send_messages=True).predicate)
 tree = client.tree
