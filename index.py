@@ -18,7 +18,6 @@ Config Vars
 GOOGLE_CREDENTIALS: The credentials I have to log in to my Google API account to connect to gspread
 token: The token of my bot
 top.gg-token: My top.gg API token
-discord.boats-token: My discord.boats API token
 discordbotlist.com-token: My discordbotlist.com API token
 """
 scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
@@ -501,7 +500,7 @@ async def vote(ctx):
         return
     hex_number = random.randint(0,16777215)
     voteEmbed = discord.Embed(title='Vote for Aadit\'s Hangman Bot!', color=hex_number)
-    voteEmbed.add_field(name="2 saves per vote (bot)", value="[Top.gg](https://top.gg/bot/748670819156099073)\n[Discord Boats](https://discord.boats/bot/748670819156099073)\n[DBL](https://discord.ly/aadits-audits-hangman-bot)")
+    voteEmbed.add_field(name="2 saves per vote (bot)", value="[Top.gg](https://top.gg/bot/748670819156099073)\n[DBL](https://discord.ly/aadits-audits-hangman-bot)")
     voteEmbed.add_field(name="No perks, but please vote (bot)", value="[Botrix.cc](https://botrix.cc/bots/748670819156099073)\n[RBL](https://bots.rovelstars.ga/bots/748670819156099073)")
     voteEmbed.add_field(name="No voting system", value="[discord.bots.gg](https://discord.bots.gg/bots/748670819156099073)\n[BOD](https://bots.ondiscord.xyz/bots/748670819156099073)")
     voteEmbed.add_field(name='Vote for our server!', value='[top.gg](https://top.gg/servers/748672765837705337)')
@@ -522,17 +521,13 @@ async def load(ctx):
 @tree.command(description = "Owner only command")
 async def post(ctx):
     if ctx.user.id == 697628625150803989:
-        webs = ['discord.boats', 'top.gg', 'discordbotlist.com']
+        webs = ['top.gg', 'discordbotlist.com']
         data = ""
         for web in webs:
-            if web == 'discord.boats' or web == 'top.gg':
+            if web == 'top.gg':
                 param_name = 'server_count'
-                if web == 'discord.boats':
-                    auth = os.environ['discord.boats-token']
-                    url = 'https://discord.boats/api/bot/748670819156099073'
-                elif web == 'top.gg':
-                    auth = os.environ['top.gg-token']
-                    url = 'https://top.gg/api/bots/748670819156099073/stats'
+                auth = os.environ['top.gg-token']
+                url = 'https://top.gg/api/bots/748670819156099073/stats'
             elif web == 'discordbotlist.com':
                 param_name = 'guilds'
                 auth = os.environ['discordbotlist.com-token']
