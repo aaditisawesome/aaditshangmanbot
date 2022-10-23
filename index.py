@@ -70,7 +70,7 @@ async def on_ready():
 @app_commands.describe(query = "Don\'t add a query until you have already ran \"/create-account\" without a query")
 async def create_account(ctx, query : str = ""):
     if query != "confirm":
-        await ctx.response.send_message("Before creating your hangman account, please read our privacy policy https://docs.google.com/document/d/12amP0BbgaTWvn4h9b90lfpuTafW_K-x83bhB3VbZuBU/edit?usp=sharing. If you agree to the policy and want to proceed with your account creation, use the `/create-account confirm` command.")
+        await ctx.response.send_message("Before creating your hangman account, please read our privacy policy https://github.com/aaditisawesome/aaditshangmanbot/blob/main/README.md. If you agree to the policy and want to proceed with your account creation, use the `/create-account confirm` command.")
     else:
         await ctx.response.send_message("Creating account...")
         if creds.access_token_expired:
@@ -104,7 +104,7 @@ async def delete_account(ctx, query : str = ""):
             await ctx.channel.send("You don't even have an account! What do you expect me to delete? Create an account using `/create-account`")
 @tree.command(description = "The bot's privacy policy!")
 async def policy(ctx):
-    await ctx.response.send_message("Here is our privacy policy: https://docs.google.com/document/d/12amP0BbgaTWvn4h9b90lfpuTafW_K-x83bhB3VbZuBU/edit?usp=sharing . If you agree to this but have not yet created an account, use `/create-account`.")
+    await ctx.response.send_message("Here is our privacy policy: https://github.com/aaditisawesome/aaditshangmanbot/blob/main/README.md . If you agree to this but have not yet created an account, use `/create-account`.")
 @tree.command(description = "Starts a hangman game!")
 async def start(ctx: discord.Interaction):
     if ctx.user in authors and authors[ctx.user] == ctx.channel:
