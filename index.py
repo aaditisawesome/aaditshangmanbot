@@ -66,10 +66,49 @@ async def on_ready():
     change_status.start()
     await tree.sync()
 
+@tree.command(name = "create-account", description = "Create your hangman account so you can earn coins!")
+@app_commands.describe(query = "Don\'t add a query until you have already ran \"/create-account\" without a query")
+async def create_account(ctx, query : str = ""):
+    if query != "confirm":
+        await ctx.response.send_message("Before creating your hangman account, please read our privacy policy https://docs.google.com/document/d/12amP0BbgaTWvn4h9b90lfpuTafW_K-x83bhB3VbZuBU/edit?usp=sharing. If you agree to the policy and want to proceed with your account creation, use the `/create-account confirm` command.")
+    else:
+        await ctx.response.send_message("Creating account...")
+        if creds.access_token_expired:
+            gs_client.login()
+        sheet = gs_client.open('Hangman bot').sheet1
+        if sheet.find(str(ctx.user.id)) != None:
+            await ctx.channel.send("You already have an account!")
+        else:
+            print(ctx.user.id)
+            row = [str(ctx.user.id), 0, 0, 0, 0]
+            index = sheet.row_count
+            sheet.insert_row(row, index)
+            await ctx.channel.send("You're account creation has succeeded! You can now play hangman using `/start`. If you every want to opt out of the privacy policy, delete your account using `/delete-account`")
+@tree.command(name = "delete-account", description = "Delete your hangman account :(")
+@app_commands.describe(query = "Don\'t add a query until you have already ran \"/delete-account\" without a query")
+async def delete_account(ctx, query : str = ""):
+    if query != "confirm" and query != "100%confirmyesiagreeomgstopmakingmewritethislol":
+        await ctx.response.send_message("Are you sure you want to delete your account? If you delete you're account, all of you coins and everything else will be lost, and you will not be able to use `/start` anymore! Enter `/delete-account confirm` to confirm deletion.")
+    elif query == "confirm":
+        await ctx.response.send_message("There's litterally no way you want to delete your account. You know you will lose everything, right? If you delete you're account, there is no turning back. If you absolutely 100% want to delete your account, use `/delete-account 100%confirmyesiagreeomgstopmakingmewritethislol`")
+    else:
+        await ctx.response.send_message("Deleting your account...")
+        if creds.access_token_expired:
+            gs_client.login()
+        sheet = gs_client.open('Hangman bot').sheet1
+        try:
+            cell = sheet.find(str(ctx.user.id))
+            sheet.delete_rows(cell.row)
+            await ctx.channel.send("You're account has been deleted :(((((. Everything is gone. There is no way you can get it back. (There is like a 0.1% chance you can get it back if you DM <@697628625150803989>)")
+        except:
+            await ctx.channel.send("You don't even have an account! What do you expect me to delete? Create an account using `/create-account`")
+@tree.command(description = "The bot's privacy policy!")
+async def policy(ctx):
+    await ctx.response.send_message("Here is our privacy policy: https://docs.google.com/document/d/12amP0BbgaTWvn4h9b90lfpuTafW_K-x83bhB3VbZuBU/edit?usp=sharing . If you agree to this but have not yet created an account, use `/create-account`.")
 @tree.command(description = "Starts a hangman game!")
 async def start(ctx: discord.Interaction):
-    if ctx.user in authors:
-        await ctx.response.send_message("You are still in a hangman game! Type `quit` to use commands.")
+    if ctx.user in authors and authors[ctx.user] == ctx.channel:
+        await ctx.response.send_message("You already have a running hangman game in this channel! Type `quit` to end it.")
         return
     def check(m):
         return m.author == ctx.user and m.channel == ctx.channel
@@ -78,9 +117,14 @@ async def start(ctx: discord.Interaction):
     wl = ""
     tries = 9
     print(word)
-    authors.append(ctx.user)
+    authors[ctx.user] = ctx.channel
     await ctx.response.send_message('Starting hangman game... type "quit" anytime to quit.')
-    time.sleep(0.5)
+    if creds.access_token_expired:
+        gs_client.login()
+    sheet = gs_client.open('Hangman bot').sheet1
+    if sheet.find(str(ctx.user.id)) == None:
+        await ctx.channel.send("You don\'t have an account yet! In order to play hangman, you need to create an account using `/create-account`")
+        return
     pic = 'hangman-0.png'
     while True:
         try:
@@ -130,9 +174,6 @@ async def start(ctx: discord.Interaction):
                             await guess.channel.send('👌 ' + ctx.user.mention + ', a letter has been revealed for you, and you used one hint!!\n ' + cl_txt + '\n **Wrong Letters:** ' + wl + '\nYou still have ' + str(tries) + ' wrong tries left! Please wait for a moment...', file=discord.File(pic))
                         if '＿' not in cl_txt:
                             await guess.channel.send(ctx.user.mention + ', :tada: You won! :tada: You got 7 coins, and the game is over. Please wait a moment...')
-                            if creds.access_token_expired:
-                                gs_client.login()
-                            sheet = gs_client.open('Hangman bot').sheet1
                             try:
                                 cell = sheet.find(str(ctx.user.id))
                                 column = cell.col + 1
@@ -145,9 +186,9 @@ async def start(ctx: discord.Interaction):
                                 sheet.update_cell(cell.row, column, coins)
                             except Exception as e:
                                 print(e)
-                                row = [ctx.user.id, 7, 0, 0, 0]
-                                index = sheet.row_count + 1
-                                sheet.insert_row(row, index)
+                                # row = [ctx.user.id, 7, 0, 0, 0]
+                                # index = sheet.row_count + 1
+                                # sheet.insert_row(row, index)
                             await guess.channel.send(ctx.user.mention + ', Thanks for playing!')
                             break
                 except:
@@ -244,9 +285,9 @@ async def start(ctx: discord.Interaction):
                         sheet.update_cell(cell.row, column, coins)
                     except Exception as e:
                         print(e)
-                        row = [ctx.user.id, 7, 0, 0, 0]
-                        index = sheet.row_count + 1
-                        sheet.insert_row(row, index)
+                        # row = [ctx.user.id, 7, 0, 0, 0]
+                        # index = sheet.row_count + 1
+                        # sheet.insert_row(row, index)
                     await guess.channel.send(ctx.user.mention + ', Thanks for playing!')
                     break
             else:                
@@ -268,16 +309,13 @@ async def start(ctx: discord.Interaction):
         except Exception as e:
             await ctx.channel.send("OOF! There was an error... DM <@697628625150803989> with this Error: `" + str(e) + '`')
             break
-    authors.remove(ctx.user)
+    authors.pop(ctx.user)
 
 @tree.command(description = "Brief overview of the commands and other information")
 async def help(ctx):
-    if ctx.user in authors:
-        await ctx.response.send_message("You are still in a hangman game! Type `quit` to use commands.")
-        return
     hex_number = random.randint(0,16777215)
     helpEmbed = discord.Embed(title='Help', color=hex_number)
-    helpEmbed.add_field(name='Commands', value='`/start` - Start AWESOME hangman game ! \n `/bal <member>` - Check how much coins you or another member has! \n `/shop` - Check out what you can buy with your coins!\n `/buy <item> <amount(Optional)>` - buy an item from the `/shop`! If you dont add an amount, it defaults to 1.\n `/servers` - See how many servers the bot is in!\n `/pay <@user> <amount of coins>` - Pay someone some coins!\n `/ping`, `/help` - It\'s kinds obvious what these are...')
+    helpEmbed.add_field(name='Commands', value='`/create-account` - Create an account in the bot so that you can play hangman! \n `/policy` - View our privacy policy \n `/delete-account` - Opt out of the privacy policy and delete your account :( \n `/start` - Start AWESOME hangman game ! \n `/bal <member>` - Check how much coins you or another member has! \n `/shop` - Check out what you can buy with your coins!\n `/buy <item> <amount(Optional)>` - buy an item from the `/shop`! If you dont add an amount, it defaults to 1.\n `/servers` - See how many servers the bot is in!\n `/pay <@user> <amount of coins>` - Pay someone some coins!\n `/ping`, `/help` - It\'s kinds obvious what these are...')
     helpEmbed.add_field(name='Playing Aadit\'s Hangman', value='There are three ways to play. One is on https://aadits-hangman.herokuapp.com . That is a hangman app I am developing. The second way is by cloning the repo on https://aadits-hangman.herokuapp.com/github, which will open a tkinter window. Be sure to read `README.md`! The last way is with the bot. Simply type `/start` in a channel I can access!')
     helpEmbed.add_field(name='Improving Aadit\'s hangman', value='You can improve our game by contacting me (https://aadits-hangman.herokuapp.com/contact) or by giving us anonymous feedback at https://aadits-hangman.herokuapp.com/feedback')
     helpEmbed.add_field(name='Still confused?', value='Join our [Support Server](https://discord.gg/CRGE5nF) and watch our [Video!](https://youtu.be/8DFSjOVh1QA)')
@@ -287,15 +325,9 @@ async def help(ctx):
     await ctx.response.send_message('https://discord.gg/CRGE5nF', embed=helpEmbed)
 @tree.command(description = "The ping of the bot")
 async def ping(ctx):
-    if ctx.user in authors:
-        await ctx.response.send_message("You are still in a hangman game! Type `quit` to use commands.")
-        return
     await ctx.response.send_message('Pong! `' + str(client.latency * 1000) + 'ms`')
 @tree.command(description = "Check how many coins you have!")
 async def bal(ctx, member: discord.Member = None):
-    if ctx.user in authors:
-        await ctx.response.send_message("You are still in a hangman game! Type `quit` to use commands.")
-        return
     await ctx.response.send_message('Counting money...')
     if creds.access_token_expired:
         gs_client.login()
@@ -317,7 +349,7 @@ async def bal(ctx, member: discord.Member = None):
             await ctx.channel.send(member.mention + ' has ' + coins + ' coins! \n They also have ' + hints + ' hints and ' + saves_m + ' saves!')
         except Exception as e:
             print(str(e))
-            await ctx.channel.send(member.mention + ' doesn\'t have any coins, hints or saves!')
+            await ctx.channel.send("The specified user doesn't have an account! Tell them to create one using `/create-account`.")
     else:
         try:
             cell = sheet.find(str(ctx.user.id))
@@ -336,8 +368,9 @@ async def bal(ctx, member: discord.Member = None):
             await ctx.channel.send(ctx.user.mention + ', You have ' + coins + ' coins! \n You also have ' + hints + ' hints and ' + saves + ' saves!')
         except Exception as e:
             print(str(e))
-            await ctx.channel.send(ctx.user.mention + ', You don\'t have any coins, hints, or saves! Type `/start` to start a hangman game, and win to gain coins!')
+            await ctx.channel.send("You don't have an account yet! Create one using `/create-account`!")
 @tree.command(name="add-coins", description = "Owner only command")
+@app_commands.check(checkOwner)
 async def add_coins(ctx, add_coins: int):
     def check(author):
         def inner_check(message): 
@@ -371,18 +404,13 @@ async def add_coins(ctx, add_coins: int):
             sheet.update_cell(cell.row, column, coins)
         except Exception as e:
             print(e)
-            row = [ctx.message.mentions[0].id, add_coins, 0, 0, 0]
-            index = sheet.row_count + 1
-            sheet.insert_row(row, index)
         await ctx.respone.send_message('Success!')
     else:
         await ctx.response.send_message('Enter a user!')
         return
 @tree.command(name = "remove-coins", description = "Owner only command")
+@app_commands.check(checkOwner)
 async def remove_coins(ctx, add_coins: int):
-    if ctx.user in authors:
-        await ctx.response.send_message("You are still in a hangman game! Type `quit` to use commands.")
-        return
     def check(author):
         def inner_check(message): 
             if ctx.user != author:
@@ -422,9 +450,6 @@ async def remove_coins(ctx, add_coins: int):
         return
 @tree.command(description = "buy an item from the shop")
 async def buy(ctx, item: str, amount : int = 1):
-    if ctx.user in authors:
-        await ctx.response.send_message("You are still in a hangman game! Type `quit` to use commands.")
-        return
     if item == 'hint':
         await ctx.response.send_message('Giving you a hint...')
         if creds.access_token_expired:
@@ -482,9 +507,6 @@ async def buy(ctx, item: str, amount : int = 1):
     """
 @tree.command(description = "States what you can buy with your coins")
 async def shop(ctx):
-    if ctx.user in authors:
-        await ctx.response.send_message("You are still in a hangman game! Type `quit` to use commands.")
-        return
     hex_number = random.randint(0,16777215)
     shopEmbed = discord.Embed(title='Shop', color=hex_number)
     shopEmbed.add_field(name='Hints', value='**Cost**: 5 coins\n**How to buy:** `/buy hint`\n**How to use:** When you are in the middle of a game, type "hint" instead of a letter to use.\n**Effects:** Reveals one letter of the word for you!')
@@ -494,12 +516,9 @@ async def shop(ctx):
     await ctx.response.send_message(embed=shopEmbed)
 @tree.command(description = "How you can support the bot by voting!")
 async def vote(ctx):
-    if ctx.user in authors:
-        await ctx.response.send_message("You are still in a hangman game! Type `quit` to use commands.")
-        return
     hex_number = random.randint(0,16777215)
     voteEmbed = discord.Embed(title='Vote for Aadit\'s Hangman Bot!', color=hex_number)
-    voteEmbed.add_field(name="2 saves per vote (bot)", value="[Top.gg](https://top.gg/bot/748670819156099073)\n[DBL](https://discord.ly/aadits-audits-hangman-bot)")
+    voteEmbed.add_field(name="2 saves per vote (bot)", value="[Top.gg](https://top.gg/bot/748670819156099073)\n[Discord Boats](https://discord.boats/bot/748670819156099073)\n[DBL](https://discord.ly/aadits-audits-hangman-bot)")
     voteEmbed.add_field(name="No perks, but please vote (bot)", value="[Botrix.cc](https://botrix.cc/bots/748670819156099073)\n[RBL](https://bots.rovelstars.ga/bots/748670819156099073)")
     voteEmbed.add_field(name="No voting system", value="[discord.bots.gg](https://discord.bots.gg/bots/748670819156099073)\n[BOD](https://bots.ondiscord.xyz/bots/748670819156099073)")
     voteEmbed.add_field(name='Vote for our server!', value='[top.gg](https://top.gg/servers/748672765837705337)')
@@ -508,25 +527,28 @@ async def vote(ctx):
     await ctx.response.send_message(embed=voteEmbed)
 @tree.command(description = "The bot's server count")
 async def servers(ctx):
-    if ctx.user in authors:
-        await ctx.response.send_message("You are still in a hangman game! Type `quit` to use commands.")
-        return
     servers = list(client.guilds)
     await ctx.response.send_message(f"I am currently in {str(len(servers))} servers!")
 @tree.command(description = "Owner only command")
+@app_commands.check(checkOwner)
 async def load(ctx):
     client.load_extension('topGG')
     await ctx.response.send_message('Done')
 @tree.command(description = "Owner only command")
+@app_commands.check(checkOwner)
 async def post(ctx):
     if ctx.user.id == 697628625150803989:
-        webs = ['top.gg', 'discordbotlist.com']
+        webs = ['discord.boats', 'top.gg', 'discordbotlist.com']
         data = ""
         for web in webs:
-            if web == 'top.gg':
+            if web == 'discord.boats' or web == 'top.gg':
                 param_name = 'server_count'
-                auth = os.environ['top.gg-token']
-                url = 'https://top.gg/api/bots/748670819156099073/stats'
+                if web == 'discord.boats':
+                    auth = os.environ['discord.boats-token']
+                    url = 'https://discord.boats/api/bot/748670819156099073'
+                elif web == 'top.gg':
+                    auth = os.environ['top.gg-token']
+                    url = 'https://top.gg/api/bots/748670819156099073/stats'
             elif web == 'discordbotlist.com':
                 param_name = 'guilds'
                 auth = os.environ['discordbotlist.com-token']
@@ -543,9 +565,6 @@ async def post(ctx):
         await ctx.response.send_message("Only the owner of the bot can use this command")
 @tree.command(description = "If you are rich and you're friend is poor, you can give them coins")
 async def pay(ctx, member: discord.Member, amount: int):
-    if ctx.user in authors:
-        await ctx.response.send_message("You are still in a hangman game! Type `quit` to use commands.")
-        return
     await ctx.response.send_message('Paying money...')
     try:
         amount = int(amount)
@@ -568,7 +587,7 @@ async def pay(ctx, member: discord.Member, amount: int):
         sheet.update_cell(cell.row, column, coins)
     except Exception as e:
         print(e)
-        await ctx.channel.send('You don\'t have that much coins!')
+        await ctx.channel.send('You don\'t have an account yet! Create one using `/create-account`')
     try:
         cell = sheet.find(str(member.id))
         column = cell.col + 1
@@ -581,16 +600,15 @@ async def pay(ctx, member: discord.Member, amount: int):
         sheet.update_cell(cell.row, column, coins)
     except Exception as e:
         print(e)
-        row = [member.id, amount, 0, 0, 0]
-        index = sheet.row_count + 1
-        sheet.insert_row(row, index)  
+        # row = [member.id, amount, 0, 0, 0]
+        # index = sheet.row_count + 1
+        # sheet.insert_row(row, index)
+        await ctx.channel.send("The specified user does not have an account yet. Tell them to create one using `/createaccount`!")
     await ctx.channel.send(f'Successfully gave {member.mention} {amount} coins!')
 @tree.command(description = "See the richest people in the bot!")
 async def rich(ctx):
     hex_number = random.randint(0,16777215)
     richEmbed = discord.Embed(title='Rich', color=hex_number)
-    if ctx.user in authors:
-        return
     await ctx.response.send_message('Getting richest users...')
     if creds.access_token_expired:
         gs_client.login()
