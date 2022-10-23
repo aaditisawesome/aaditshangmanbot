@@ -125,6 +125,7 @@ async def start(ctx: discord.Interaction):
     sheet = gs_client.open('Hangman bot').sheet1
     if sheet.find(str(ctx.user.id)) == None:
         await ctx.channel.send("You don\'t have an account yet! In order to play hangman, you need to create an account using `/create-account`")
+        authors.pop(ctx.user.id)
         return
     pic = 'hangman-0.png'
     while True:
