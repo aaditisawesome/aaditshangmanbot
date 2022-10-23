@@ -107,7 +107,7 @@ async def policy(ctx):
     await ctx.response.send_message("Here is our privacy policy: https://github.com/aaditisawesome/aaditshangmanbot/blob/main/README.md . If you agree to this but have not yet created an account, use `/create-account`.")
 @tree.command(description = "Starts a hangman game!")
 async def start(ctx: discord.Interaction):
-    if ctx.user in authors and authors[ctx.user] == ctx.channel:
+    if ctx.user.id in authors and authors[ctx.user.id] == ctx.channel.id:
         await ctx.response.send_message("You already have a running hangman game in this channel! Type `quit` to end it.")
         return
     def check(m):
@@ -117,7 +117,7 @@ async def start(ctx: discord.Interaction):
     wl = ""
     tries = 9
     print(word)
-    authors[ctx.user] = ctx.channel
+    authors[ctx.user.id] = ctx.channel.id
     await ctx.response.send_message('Starting hangman game... type "quit" anytime to quit.')
     if creds.access_token_expired:
         gs_client.login()
@@ -309,7 +309,7 @@ async def start(ctx: discord.Interaction):
         except Exception as e:
             await ctx.channel.send("OOF! There was an error... DM <@697628625150803989> with this Error: `" + str(e) + '`')
             break
-    authors.pop(ctx.user)
+    authors.pop(ctx.user.id)
 
 @tree.command(description = "Brief overview of the commands and other information")
 async def help(ctx):
