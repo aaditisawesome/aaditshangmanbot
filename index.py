@@ -624,6 +624,7 @@ async def rich(ctx):
             coins[coins.index(amount)] = int(amount)
         except Exception as e:
             print(e)
+            coins.pop(coins.index(amount))
     for x in range(5): 
         try:
             coinsadd = max(coins)
