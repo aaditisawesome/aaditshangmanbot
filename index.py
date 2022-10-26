@@ -108,6 +108,13 @@ async def policy(ctx):
     await ctx.response.send_message("Here is our privacy policy: https://github.com/aaditisawesome/aaditshangmanbot/blob/main/README.md . If you agree to this but have not yet created an account, use `/create-account`.")
 @tree.command(description = "Starts a hangman game!")
 async def start(ctx: discord.Interaction):
+    if sheet.find(str(ctx.user.id)) == None:
+        await ctx.channel.send("You don\'t have an account yet! In order to play hangman, you need to create an account using `/create-account`")
+        try:
+            authors.pop(ctx.user)
+        except:
+            pass
+        return
     if ctx.user.id in authors and authors[ctx.user.id] == ctx.channel.id:
         await ctx.response.send_message("You already have a running hangman game in this channel! Type `quit` to end it.")
         return
@@ -123,10 +130,6 @@ async def start(ctx: discord.Interaction):
     if creds.access_token_expired:
         gs_client.login()
     sheet = gs_client.open('Hangman bot').sheet1
-    if sheet.find(str(ctx.user.id)) == None:
-        await ctx.channel.send("You don\'t have an account yet! In order to play hangman, you need to create an account using `/create-account`")
-        authors.pop(ctx.user.id)
-        return
     pic = 'hangman-0.png'
     while True:
         try:
@@ -136,6 +139,8 @@ async def start(ctx: discord.Interaction):
             except UnboundLocalError:
                 await ctx.channel.send(ctx.user.mention + ', ' + ('＿  ' * len(word)) + '\nWhat is your guess?')
             guess = await client.wait_for('message', check=check)
+            if ctx.author.id not in authors:
+                return
             str_guess = str(guess.content.lower())
             print(guess)
             print(str_guess)
