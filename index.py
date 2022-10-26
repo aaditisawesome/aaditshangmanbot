@@ -108,6 +108,7 @@ async def policy(ctx):
     await ctx.response.send_message("Here is our privacy policy: https://github.com/aaditisawesome/aaditshangmanbot/blob/main/README.md . If you agree to this but have not yet created an account, use `/create-account`.")
 @tree.command(description = "Starts a hangman game!")
 async def start(ctx: discord.Interaction):
+    await ctx.response.send_message('Starting hangman game... type "quit" anytime to quit.')
     if creds.access_token_expired:
         gs_client.login()
     sheet = gs_client.open('Hangman bot').sheet1
@@ -119,7 +120,7 @@ async def start(ctx: discord.Interaction):
             pass
         return
     if ctx.user.id in authors and authors[ctx.user.id] == ctx.channel.id:
-        await ctx.response.send_message("You already have a running hangman game in this channel! Type `quit` to end it.")
+        await ctx.channel.send("You already have a running hangman game in this channel! Type `quit` to end it.")
         return
     def check(m):
         return m.author == ctx.user and m.channel == ctx.channel
@@ -129,7 +130,6 @@ async def start(ctx: discord.Interaction):
     tries = 9
     print(word)
     authors[ctx.user.id] = ctx.channel.id
-    await ctx.response.send_message('Starting hangman game... type "quit" anytime to quit.')
     pic = 'hangman-0.png'
     while True:
         try:
@@ -139,7 +139,7 @@ async def start(ctx: discord.Interaction):
             except UnboundLocalError:
                 await ctx.channel.send(ctx.user.mention + ', ' + ('＿  ' * len(word)) + '\nWhat is your guess?')
             guess = await client.wait_for('message', check=check)
-            if ctx.author.id not in authors:
+            if ctx.user.id not in authors:
                 return
             str_guess = str(guess.content.lower())
             print(guess)
@@ -315,7 +315,7 @@ async def start(ctx: discord.Interaction):
                 print(str_guess)
         except Exception as e:
             await ctx.channel.send("OOF! There was an error... DM <@697628625150803989> with this Error: `" + str(e) + '`')
-            break
+            raise e
     authors.pop(ctx.user.id)
 
 @tree.command(description = "Brief overview of the commands and other information")
