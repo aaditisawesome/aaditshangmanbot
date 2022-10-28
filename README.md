@@ -11,4 +11,6 @@ This is so that we can track the amount of coins for every user. Other than the 
 ## Other info
 If you have any other questions or concerns, please visit https://discord.gg/CRGE5nF
 
+[![Discord Bots](https://top.gg/api/widget/748670819156099073.svg)](https://top.gg/bot/748670819156099073)
+
 BOT INVITE LINK: https://discord.com/oauth2/authorize?client_id=748670819156099073&scope=bot&permissions=19456 
