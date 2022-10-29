@@ -6,7 +6,7 @@ from random_words import RandomWords
 import time
 import random
 import gspread
-from oauth2client.service_account import ServiceAccountCredentials
+# from oauth2client.service_account import ServiceAccountCredentials
 import datetime
 from PyDictionary import PyDictionary
 import requests
@@ -25,8 +25,9 @@ top.gg-token: My top.gg API token
 discordbotlist.com-token: My discordbotlist.com API token
 """
 scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
-creds = ServiceAccountCredentials.from_json_keyfile_dict(json.loads(os.environ['GOOGLE_CREDENTIALS']), scope)
-gs_client = gspread.authorize(creds)
+# creds = ServiceAccountCredentials.from_json_keyfile_dict(json.loads(os.environ['GOOGLE_CREDENTIALS']), scope)
+# gs_client = gspread.authorize(creds)
+gs_client = gspread.service_account_from_dict(json.loads(os.environ['GOOGLE_CREDENTIALS']), scope)
 dictionary = PyDictionary()
 
 client = commands.Bot(command_prefix="$", intents = intents)
