@@ -7,6 +7,7 @@ import time
 import random
 import gspread
 # from oauth2client.service_account import ServiceAccountCredentials
+from google.oauth2.service_account import Credentials
 import datetime
 from PyDictionary import PyDictionary
 import requests
@@ -27,7 +28,8 @@ discordbotlist.com-token: My discordbotlist.com API token
 scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
 # creds = ServiceAccountCredentials.from_json_keyfile_dict(json.loads(os.environ['GOOGLE_CREDENTIALS']), scope)
 # gs_client = gspread.authorize(creds)
-gs_client = gspread.service_account_from_dict(json.loads(os.environ['GOOGLE_CREDENTIALS']), scope)
+creds = Credentials.from_service_account_info(json.loads(os.environ['GOOGLE_CREDENTIALS'])
+gs_client = gspread.service_account_from_dict(GOOGLE_CREDENTIALS, scope)
 dictionary = PyDictionary()
 
 client = commands.Bot(command_prefix="$", intents = intents)
@@ -44,7 +46,9 @@ def checkOwner(interaction):
     return interaction.user.id == 697628625150803989 or interaction.user.id == 713467569725767841 or interaction.user.id == 692195032857444412
 
 def openSheet():
-    if creds.access_token_expired:
+    # if creds.access_token_expired:
+    #     gs_client.login()
+    if creds.expired:
         gs_client.login()
     sheet = gs_client.open('Hangman bot').sheet1
     return sheet
