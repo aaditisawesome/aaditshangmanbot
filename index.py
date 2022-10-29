@@ -146,6 +146,7 @@ async def delete_account(interaction, query : str = ""):
         await interaction.response.send_message("Deleting your account...")
         try:
             deleteUser()
+            authors.pop(interaction.user)
             await interaction.edit_original_response(content = "You're account has been deleted :(((((. Everything is gone. There is no way you can get it back. (There is like a 0.1% chance you can get it back if you DM <@697628625150803989>)")
         except:
             await interaction.edit_original_response(content = "You don't even have an account! What do you expect me to delete? Create an account using `/create-account`")
@@ -174,6 +175,7 @@ async def start(interaction: discord.Interaction):
     sheet = openSheet()
     if sheet.find(str(interaction.user.id)) == None:
         await interaction.edit_original_response(content = "You don\'t have an account yet! In order to play hangman, you need to create an account using `/create-account`")
+        authors.pop(interaction.user)
         return
     pic = 'hangman-0.png'
     embed.add_field(name = "Welcome to hangman!", value = "GAME MECHANICS:\n- Enter one letter guesses for the word\n- Enter 'hint' to use a hint\n- Enter 'save' to use a save\n- Enter 'quit' to quit the game\n- The game times out if you don\'t send anything for 1 minute")
