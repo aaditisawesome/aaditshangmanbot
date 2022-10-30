@@ -102,14 +102,14 @@ async def change_status():
     global index
     statuses = [
         'https://aadits-hangman.herokuapp.com',
-        f'{len(client.guilds)} servers',
+        f'{len(client.guilds)} server(s)',
         '/help || /start',
         'Youtube',
-        'People winning hangman',
+        'people winning hangman',
         'Audit dev me',
         'https://discord.gg/CRGE5nF',
         'https://dsc.gg/hangman',
-        'for contributrions on https://github.com/aaditisawesome/aaditshangmanbot'
+        'for contributions on https://github.com/aaditisawesome/aaditshangmanbot'
     ]
     await client.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name=statuses[index]))
     index +=1
@@ -122,11 +122,11 @@ async def on_ready():
     change_status.start()
     await tree.sync()
 
-@tree.command(name = "create-account", description = "Create your hangman account so you can earn coins!")
-@app_commands.describe(query = "Don\'t add a query until you have already ran \"/create-account\" without a query")
+@tree.command(name = "create-account", description = "Create a hangman account to play hangman games with the bot!")
+@app_commands.describe(query = "Confirmation for creating an account")
 async def create_account(interaction, query : str = ""):
     if query != "confirm":
-        await interaction.response.send_message("Before creating your hangman account, please read our privacy policy https://docs.google.com/document/d/12amP0BbgaTWvn4h9b90lfpuTafW_K-x83bhB3VbZuBU/edit?usp=sharing. If you agree to the policy and want to proceed with your account creation, use the `/create-account confirm` command.")
+        await interaction.response.send_message("Before creating your hangman account, please read our privacy policy at https://docs.google.com/document/d/12amP0BbgaTWvn4h9b90lfpuTafW_K-x83bhB3VbZuBU/edit?usp=sharing. If you agree to the policy and want to proceed with your account creation, use the `/create-account confirm` command.")
     else:
         await interaction.response.send_message("Creating account...")
         sheet = openSheet()
@@ -134,25 +134,28 @@ async def create_account(interaction, query : str = ""):
             await interaction.edit_original_response(content = "You already have an account!")
         else:
             initiateUser(interaction)
-            await interaction.edit_original_response(content = "You're account creation has succeeded! You can now play hangman using `/start`. If you every want to opt out of the privacy policy, delete your account using `/delete-account`")
+            await interaction.edit_original_response(content = "Your account creation has succeeded! You can now play hangman using `/start`. If you ever want to opt out of the privacy policy, delete your account using `/delete-account`.")
+
 @tree.command(name = "delete-account", description = "Delete your hangman account :(")
-@app_commands.describe(query = "Don\'t add a query until you have already ran \"/delete-account\" without a query")
+@app_commands.describe(query = "Confirm that you want to create an account (BE CAREFUL)")
 async def delete_account(interaction, query : str = ""):
     if query != "confirm" and query != "100%confirmyesiagreeomgstopmakingmewritethislol":
-        await interaction.response.send_message("Are you sure you want to delete your account? If you delete you're account, all of you coins and everything else will be lost, and you will not be able to use `/start` anymore! Enter `/delete-account confirm` to confirm deletion.")
+        await interaction.response.send_message("Are you sure you want to delete your account? If you delete your account, all of your coins and inventory will be gone, and you will not be able to play a hangman game without creating an account again! Enter `/delete-account confirm` to confirm deletion.")
     elif query == "confirm":
-        await interaction.response.send_message("There's litterally no way you want to delete your account. You know you will lose everything, right? If you delete you're account, there is no turning back. If you absolutely 100% want to delete your account, use `/delete-account 100%confirmyesiagreeomgstopmakingmewritethislol`")
-    else:
+        await interaction.response.send_message("If you delete your account, there is no turning back. If you absolutely want to delete your account, use `/delete-account 100%confirmyesiagreeomgstopmakingmewritethislol`.")
+    elif query == "100%confirmyesiagreeomgstopmakingmewritethislol":
         await interaction.response.send_message("Deleting your account...")
         try:
             deleteUser()
             authors.pop(interaction.user)
-            await interaction.edit_original_response(content = "You're account has been deleted :(((((. Everything is gone. There is no way you can get it back. (There is like a 0.1% chance you can get it back if you DM <@697628625150803989>)")
+            await interaction.edit_original_response(content = "Your account has been deleted :(. (There is like a 0.1% chance you can get it back if you DM <@697628625150803989>)")
         except:
-            await interaction.edit_original_response(content = "You don't even have an account! What do you expect me to delete? Create an account using `/create-account`")
+            await interaction.edit_original_response(content = "You don't even have an account! What do you expect me to delete?")
+
 @tree.command(description = "The bot's privacy policy!")
 async def policy(interaction):
-    await interaction.response.send_message("Here is our privacy policy: https://docs.google.com/document/d/12amP0BbgaTWvn4h9b90lfpuTafW_K-x83bhB3VbZuBU/edit?usp=sharing . If you agree to this but have not yet created an account, use `/create-account`.")
+    await interaction.response.send_message("Here is our privacy policy: https://docs.google.com/document/d/12amP0BbgaTWvn4h9b90lfpuTafW_K-x83bhB3VbZuBU/edit?usp=sharing. If you agree to the privacy policy and want to create an account, use `/create-account`.")
+
 @tree.command(description = "Starts a hangman game!")
 async def start(interaction: discord.Interaction):
     if interaction.user in authors:
@@ -174,17 +177,17 @@ async def start(interaction: discord.Interaction):
     await interaction.response.send_message('Starting hangman game... type "quit" anytime to quit.')
     sheet = openSheet()
     if sheet.find(str(interaction.user.id)) == None:
-        await interaction.edit_original_response(content = "You don\'t have an account yet! In order to play hangman, you need to create an account using `/create-account`")
+        await interaction.edit_original_response(content = "You don't have an account yet! In order to play hangman, you need to create an account using `/create-account`")
         authors.pop(interaction.user)
         return
     pic = 'hangman-0.png'
-    embed.add_field(name = "Welcome to hangman!", value = "GAME MECHANICS:\n- Enter one letter guesses for the word\n- Enter 'hint' to use a hint\n- Enter 'save' to use a save\n- Enter 'quit' to quit the game\n- The game times out if you don\'t send anything for 1 minute")
+    embed.add_field(name = "GAME MECHANICS:", value = "Guess letters\n- Enter 'hint' to reveal a letter\n- Enter 'save' to get an extra try\n- Enter 'quit' to quit the game\n- The game times out if you don't send anything for 1 minute")
     embed.add_field(name = "Wrong Letters:", value = "None", inline = False)
     value = ""
     for i in range(len(word)):
         value = value +  "\_  "
     embed.add_field(name = "Word:", value = value, inline = False)
-    embed.add_field(name = "Wrong tries left:", value = tries)
+    embed.add_field(name = "Wrong Tries Left:", value = tries)
     file = discord.File(pic, filename=pic)
     embed.set_image(url=f"attachment://{pic}")
     embed.set_footer(text = "Please enter your next guess. (or 'hint'/'save'/'quit')")
@@ -195,7 +198,7 @@ async def start(interaction: discord.Interaction):
             try:
                 guess = await client.wait_for('message', timeout = 60.0, check=check)
             except asyncio.TimeoutError:
-                await interaction.edit_original_response(content = "Game has timed out. Please start a new game with `/start`", attachments = [], embed = None)
+                await interaction.edit_original_response(content = "The game has timed out. Please start a new game with `/start`", attachments = [], embed = None)
                 break
             str_guess = str(guess.content.lower())
             print(guess)
@@ -210,7 +213,7 @@ async def start(interaction: discord.Interaction):
                     changeWorked = changeItem(interaction.user, "hint", -1)
                     if not changeWorked:
                         embed.clear_fields()
-                        embed.add_field(name = "Hint unsuccessful", value = "You don\'t have any hints! They cost 5 coins each! You can buy hints by using `/buy hint [amount]`!")
+                        embed.add_field(name = "Hint unsuccessful", value = "You don't have any hints! They cost 5 coins each! You can buy hints using `/buy hint [amount]`!")
                     else:
                         for letter in word:
                             if letter not in cl:
@@ -218,7 +221,7 @@ async def start(interaction: discord.Interaction):
                                 break
                             letter = letter
                         embed.clear_fields()
-                        embed.add_field(name = "Used Hint", value = "👌 A letter has been revealed for you, and you used one hint!!")
+                        embed.add_field(name = "Hint Used", value = "👌 One hint has been consumed, and a letter has been revealed for you!")
                 except Exception as e:
                     print(e)
             elif str_guess == 'save':
@@ -226,7 +229,7 @@ async def start(interaction: discord.Interaction):
                 changeWorked = changeItem(interaction.user, "save", -1)
                 if not changeWorked:
                     embed.clear_fields()
-                    embed.add_field(name = "Save unsuccessful", value = "You don\'t have any saves! You earn saves by voting for our bot on `/vote`, or winning giveaways in https://discord.gg/CRGE5nF !")
+                    embed.add_field(name = "Save unsuccessful", value = "You don\'t have any saves! You earn saves by voting for our bot with `/vote`, or winning giveaways in https://discord.gg/CRGE5nF!")
                 else:
                     tries += 1
                     pic = 'hangman-' + str(9 - tries) + '.png'
@@ -264,10 +267,10 @@ async def start(interaction: discord.Interaction):
                 """
             elif len(str_guess) != 1:
                 embed.clear_fields()
-                embed.add_field(name = "Guess unsuccessful", value = 'You can only send one letter!')
+                embed.add_field(name = "Guess Unsuccessful", value = 'You can only guess one letter at a time!')
             elif str_guess in cl or str_guess in wl:
                 embed.clear_fields()
-                embed.add_field(name = "Guess unsuccessful", value = "You have already said this letter!")
+                embed.add_field(name = "Guess Unsuccessful", value = "You have already guessed this letter!")
             elif str_guess in word:
                 cl += str_guess
                 embed.clear_fields()
@@ -289,13 +292,13 @@ async def start(interaction: discord.Interaction):
                     cl_txt += '\_  '
             if '_' not in cl_txt:
                 embed.clear_fields()
-                embed.title = ":tada: " + interaction.user.name + "'s won hangman game! :tada:"
-                embed.add_field(name = ":tada: You won! :tada:", value = "You got 7 coins, good job!")
+                embed.title = ":tada: " + interaction.user.name + " won the hangman game! :tada:"
+                embed.add_field(name = ":tada: You Won! :tada:", value = "You got 7 coins, good job!")
                 embed.set_footer(text = "Thanks for playing!")
             elif tries == 0:
                 embed.clear_fields()
-                embed.title = "👎 " + interaction.user.name + "'s lost hangman game! 👎"
-                embed.add_field(name = "🔴 You Lost!", value = "The game is over. The word was ||" + word + "||")
+                embed.title = "👎 " + interaction.user.name + " lost the hangman game! 👎"
+                embed.add_field(name = "🔴 You lost!", value = "The word was ||" + word + "||")
                 embed.set_footer(text = "Please try again!")
             if wl == "":
                 embed.add_field(name = "Wrong Letters:", value = "None", inline = False)
@@ -315,7 +318,7 @@ async def start(interaction: discord.Interaction):
             elif tries == 0:
                 break
         except Exception as e:
-            await interaction.edit_original_response(content = ("OOF! There was an error... DM <@697628625150803989> with this Error: `" + str(e) + '`'), attachments = [], embed = None)
+            await interaction.edit_original_response(content = ("OOF! There was an error... DM <@697628625150803989> with this error: `" + str(e) + '`'), attachments = [], embed = None)
             raise e
     if len(authors[interaction.user]) > 1:
         authors[interaction.user].remove(interaction.channel)
