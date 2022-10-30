@@ -382,6 +382,7 @@ async def buy(interaction, item: str, amount : int = 1):
                 await interaction.edit_original_response(content = 'You don\'t have any coins! Get coins by typing `/start` and win!')
                 return
             changeItem(interaction.user, "hint", amount)
+            await interaction.edit_original_response(content = "Success! You now have " + amount + " more hint(s).")
         except Exception as e:
             print(e)
             await interaction.edit_original_response(content = 'You don\'t have any coins! Get coins by typing `/start` and win!')
