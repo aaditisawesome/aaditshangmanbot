@@ -145,7 +145,7 @@ async def delete_account(interaction, query : str = ""):
     else:
         await interaction.response.send_message("Deleting your account...")
         try:
-            deleteUser()
+            deleteUser(interaction)
             authors.pop(interaction.user)
             await interaction.edit_original_response(content = "You're account has been deleted :(((((. Everything is gone. There is no way you can get it back. (There is like a 0.1% chance you can get it back if you DM <@697628625150803989>)")
         except:
