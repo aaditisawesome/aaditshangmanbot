@@ -137,7 +137,7 @@ async def create_account(interaction, query : str = ""):
             await interaction.edit_original_response(content = "Your account creation has succeeded! You can now play hangman using `/start`. If you ever want to opt out of the privacy policy, delete your account using `/delete-account`.")
 
 @tree.command(name = "delete-account", description = "Delete your hangman account :(")
-@app_commands.describe(query = "Confirm that you want to create an account (BE CAREFUL)")
+@app_commands.describe(query = "Confirm that you want to delete an account (BE CAREFUL)")
 async def delete_account(interaction, query : str = ""):
     if query != "confirm" and query != "100%confirmyesiagreeomgstopmakingmewritethislol":
         await interaction.response.send_message("Are you sure you want to delete your account? If you delete your account, all of your coins and inventory will be gone, and you will not be able to play a hangman game without creating an account again! Enter `/delete-account confirm` to confirm deletion.")
@@ -150,7 +150,7 @@ async def delete_account(interaction, query : str = ""):
             authors.pop(interaction.user)
             await interaction.edit_original_response(content = "Your account has been deleted :(. (There is like a 0.1% chance you can get it back if you DM <@697628625150803989>)")
         except:
-            await interaction.edit_original_response(content = "You don't even have an account! What do you expect me to delete?")
+            await interaction.edit_original_response(content = "You don't even have an account! What do you expect me to delete? Create an account using `/create-account`.") # I want to make sure everyone knows how to create an account
 
 @tree.command(description = "The bot's privacy policy!")
 async def policy(interaction):
@@ -236,7 +236,7 @@ async def start(interaction: discord.Interaction):
                     if pic == 'hangman--1.png':
                         pic = 'hangman-0.png'
                     embed.clear_fields()
-                    embed.add_field(name = "Used Save", value = '👌 You now have an extra try!')
+                    embed.add_field(name = "Save Used", value = '👌 You now have an extra try!')
             elif str_guess == 'defenition' or str_guess == 'def':
                 """
                 await interaction.edit_original_response(content = ('Please give me a moment')
