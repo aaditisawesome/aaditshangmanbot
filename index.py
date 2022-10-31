@@ -148,7 +148,7 @@ async def delete_account(interaction, query : str = ""):
         try:
             deleteUser()
             authors.pop(interaction.user)
-            await interaction.edit_original_response(content = "Your account has been deleted :(. (There is like a 0.1% chance you can get it back if you DM <@697628625150803989>)")
+            await interaction.edit_original_response(content = "Your account has been deleted :(. Please tell us why you deleted your account in https://discord.gg/CRGE5nF so that we can improve our bot!")
         except:
             await interaction.edit_original_response(content = "You don't even have an account! What do you expect me to delete? Create an account using `/create-account`.") # I want to make sure everyone knows how to create an account
 
@@ -198,13 +198,13 @@ async def start(interaction: discord.Interaction):
             try:
                 guess = await client.wait_for('message', timeout = 60.0, check=check)
             except asyncio.TimeoutError:
-                await interaction.edit_original_response(content = "The game has timed out. Please start a new game with `/start`", attachments = [], embed = None)
+                await interaction.edit_original_response(content = "The game has timed out. Please start a new game with `/start` .", attachments = [], embed = None)
                 break
             str_guess = str(guess.content.lower())
             print(guess)
             print(str_guess)
             if str_guess == 'quit':
-                await interaction.edit_original_response(content = ('Thanks for playing! The game is over'), attachments = [], embed = None)
+                await interaction.edit_original_response(content = ('Thanks for playing! You have quit the game.'), attachments = [], embed = None)
                 break
             elif str_guess == 'hint':
                 await interaction.edit_original_response(content = ('Please give me a moment'), attachments = [], embed = None)
@@ -229,7 +229,7 @@ async def start(interaction: discord.Interaction):
                 changeWorked = changeItem(interaction.user, "save", -1)
                 if not changeWorked:
                     embed.clear_fields()
-                    embed.add_field(name = "Save unsuccessful", value = "You don\'t have any saves! You earn saves by voting for our bot with `/vote`, or winning giveaways in https://discord.gg/CRGE5nF!")
+                    embed.add_field(name = "Save unsuccessful", value = "You don\'t have any saves! You earn saves by voting for our bot with `/vote`, or winning giveaways in https://discord.gg/CRGE5nF !")
                 else:
                     tries += 1
                     pic = 'hangman-' + str(9 - tries) + '.png'
@@ -330,9 +330,9 @@ async def help(interaction):
     hex_number = random.randint(0,16777215)
     helpEmbed = discord.Embed(title='Help', color=hex_number)
     helpEmbed.add_field(name='Commands', value='`/create-account` - Create an account in the bot so that you can play hangman! \n `/policy` - View our privacy policy \n `/delete-account` - Opt out of the privacy policy and delete your account :( \n `/start` - Start AWESOME hangman game ! \n `/bal <member>` - Check how much coins you or another member has! \n `/shop` - Check out what you can buy with your coins!\n `/buy <item> <amount(Optional)>` - buy an item from the `/shop`! If you dont add an amount, it defaults to 1.\n `/servers` - See how many servers the bot is in!\n `/pay <@user> <amount of coins>` - Pay someone some coins!\n `/ping`, `/help` - It\'s kinds obvious what these are...')
-    helpEmbed.add_field(name='Playing Aadit\'s Hangman', value='There are three ways to play. One is on https://aadits-hangman.herokuapp.com . That is a hangman app I am developing. The second way is by cloning the repo on https://aadits-hangman.herokuapp.com/github, which will open a tkinter window. Be sure to read `README.md`! The last way is with the bot. Simply type `/start` in a channel I can access!')
+    helpEmbed.add_field(name='Playing Aadit\'s Hangman', value='- The hangman web app I am developing: https://aadits-hangman.herokuapp.com. \n- Installing my python package from PyPI: https://pypi.org/project/AaditsHangman/. \n- Inviting me to your server: https://dsc.gg/hangman/ , and creating an account using `/create-account`.')
     helpEmbed.add_field(name='Improving Aadit\'s hangman', value='You can improve our game by contacting me (https://aadits-hangman.herokuapp.com/contact) or by giving us anonymous feedback at https://aadits-hangman.herokuapp.com/feedback')
-    helpEmbed.add_field(name='Still confused?', value='Join our [Support Server](https://discord.gg/CRGE5nF) and watch our [Video!](https://youtu.be/8DFSjOVh1QA)')
+    helpEmbed.add_field(name='Still confused?', value='Join our [Support Server](https://discord.gg/CRGE5nF) or watch our [video!](https://youtu.be/8DFSjOVh1QA)')
     helpEmbed.add_field(name='Enjoying the bot?', value='If you want to add Aadit\'s Hangman Bot to your own server so your members can play hangman, click [HERE!](https://discord.com/oauth2/authorize?client_id=748670819156099073&scope=bot&permissions=3072) Also, please see (`/vote`) if you want to get good prizes!')
     helpEmbed.timestamp = datetime.datetime.now()
     helpEmbed.set_footer(text='Thank you so much!')
@@ -353,7 +353,7 @@ async def bal(interaction, member: discord.Member = None):
     else:
         try:
             items = getItems(interaction.user)
-            await interaction.edit_original_response(content = (interaction.user.mention + ', You have ' + items[0] + ' coins! \n You also have ' + items[1] + ' hints and ' + items[2] + ' saves!'))
+            await interaction.edit_original_response(content = (interaction.user.mention + ', you have ' + items[0] + ' coins! \n You also have ' + items[1] + ' hints and ' + items[2] + ' saves!'))
         except Exception as e:
             print(str(e))
             await interaction.edit_original_response(content = "You don't have an account yet! Create one using `/create-account`!")
@@ -436,7 +436,7 @@ async def vote(interaction):
     voteEmbed.add_field(name="No voting system", value="[discord.bots.gg](https://discord.bots.gg/bots/748670819156099073)\n[BOD](https://bots.ondiscord.xyz/bots/748670819156099073)")
     voteEmbed.add_field(name='Vote for our server!', value='[top.gg](https://top.gg/servers/748672765837705337)')
     voteEmbed.timestamp = datetime.datetime.now()
-    voteEmbed.set_footer(text='TYSM for voting!')
+    voteEmbed.set_footer(text='Thank you so much for voting!')
     await interaction.response.send_message(embed=voteEmbed)
 @tree.command(description = "The bot's server count")
 async def servers(interaction):
@@ -451,17 +451,13 @@ async def load(interaction):
 @app_commands.check(checkOwner)
 async def post(interaction):
     if interaction.user.id == 697628625150803989:
-        webs = ['discord.boats', 'top.gg', 'discordbotlist.com']
+        webs = ['top.gg', 'discordbotlist.com']
         data = ""
         for web in webs:
-            if web == 'discord.boats' or web == 'top.gg':
+            if web == 'top.gg':
                 param_name = 'server_count'
-                if web == 'discord.boats':
-                    auth = os.environ['discord.boats-token']
-                    url = 'https://discord.boats/api/bot/748670819156099073'
-                elif web == 'top.gg':
-                    auth = os.environ['top.gg-token']
-                    url = 'https://top.gg/api/bots/748670819156099073/stats'
+                auth = os.environ['top.gg-token']
+                url = 'https://top.gg/api/bots/748670819156099073/stats'
             elif web == 'discordbotlist.com':
                 param_name = 'guilds'
                 auth = os.environ['discordbotlist.com-token']
@@ -481,11 +477,11 @@ async def pay(interaction, member: discord.Member, amount: int):
     await interaction.response.send_message('Paying money...')
     transactionWorked = changeItem(interaction.user, "coins", -1 * amount)
     if not transactionWorked:
-        await interaction.edit_original_response(content = 'You either don\'t have that many coins, or you don\'t have an account. Create an account using `/create-account`')
+        await interaction.edit_original_response(content = 'You either don\'t have that many coins, or you don\'t have an account. Create an account using `/create-account.`')
         return
     transactionWorked = changeItem(member, "coins", amount)
     if not transactionWorked:
-        await interaction.edit_original_response(content = "The specified user does not have an account yet. Tell them to create one using `/createaccount`!")
+        await interaction.edit_original_response(content = "The specified user does not have an account yet. Tell them to create one using `/createaccount`.!")
         changeItem(interaction.user, "coins", amount)
         return   
     await interaction.edit_original_response(content = f'Successfully gave {member.mention} {amount} coins!')
