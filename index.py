@@ -27,9 +27,8 @@ discordbotlist.com-token: My discordbotlist.com API token
 """
 scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
 # creds = ServiceAccountCredentials.from_json_keyfile_dict(json.loads(os.environ['GOOGLE_CREDENTIALS']), scope)
-# gs_client = gspread.authorize(creds)
-creds = Credentials.from_service_account_info(json.loads(os.environ['GOOGLE_CREDENTIALS'])
-gs_client = gspread.service_account_from_dict(GOOGLE_CREDENTIALS, scope)
+creds = Credentials.from_service_account_info(json.loads(os.environ['GOOGLE_CREDENTIALS'], scope)
+gs_client = gspread.authorize(creds)
 dictionary = PyDictionary()
 
 client = commands.Bot(command_prefix="$", intents = intents)
