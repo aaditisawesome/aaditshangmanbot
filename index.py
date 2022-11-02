@@ -229,7 +229,7 @@ async def start(interaction: discord.Interaction):
                 changeWorked = changeItem(interaction.user, "save", -1)
                 if not changeWorked:
                     embed.clear_fields()
-                    embed.add_field(name = "Save unsuccessful", value = "You don\'t have any saves! You earn saves by voting for our bot with `/vote`, or winning giveaways in https://discord.gg/CRGE5nF !")
+                    embed.add_field(name = "Save Unsuccessful", value = "You don\'t have any saves! You earn saves by voting for our bot with `/vote`, or winning giveaways in https://discord.gg/CRGE5nF !")
                 else:
                     tries += 1
                     pic = "hangman-" + str(9 - tries) + ".png"
@@ -298,7 +298,7 @@ async def start(interaction: discord.Interaction):
             elif tries == 0:
                 embed.clear_fields()
                 embed.title = "👎 " + interaction.user.name + " lost the hangman game! 👎"
-                embed.add_field(name = "🔴 You lost!", value = "The word was ||" + word + "||")
+                embed.add_field(name = "🔴 You Lost!", value = "The word was ||" + word + "||")
                 embed.set_footer(text = "Please try again!")
             if wl == "":
                 embed.add_field(name = "Wrong Letters:", value = "None", inline = False)
@@ -330,8 +330,8 @@ async def help(interaction):
     hex_number = random.randint(0,16777215)
     helpEmbed = discord.Embed(title="Help", color=hex_number)
     helpEmbed.add_field(name="Commands", value="`/create-account` - Create an account in the bot so that you can play hangman! \n `/policy` - View our privacy policy \n `/delete-account` - Opt out of the privacy policy and delete your account :( \n `/start` - Start AWESOME hangman game ! \n `/bal <member>` - Check how much coins you or another member has! \n `/shop` - Check out what you can buy with your coins!\n `/buy <item> <amount(Optional)>` - buy an item from the `/shop`! If you dont add an amount, it defaults to 1.\n `/servers` - See how many servers the bot is in!\n `/pay <@user> <amount of coins>` - Pay someone some coins!\n `/ping`, `/help` - It\'s kinds obvious what these are...')
-    helpEmbed.add_field(name="Playing Aadit's Hangman", value="- The hangman web app I am developing: https://aadits-hangman.herokuapp.com. \n- Installing my python package from PyPI: https://pypi.org/project/AaditsHangman/. \n- Inviting me to your server: https://dsc.gg/hangman/ , and creating an account using `/create-account`.')
-    helpEmbed.add_field(name="Improving Aadit's hangman", value="You can improve our game by contacting me (https://aadits-hangman.herokuapp.com/contact) or by giving us anonymous feedback at https://aadits-hangman.herokuapp.com/feedback")
+    helpEmbed.add_field(name="Playing Aadit's Hangman", value="- The hangman web app I am developing: https://aadits-hangman.herokuapp.com. \n- Installing my python package from PyPI: https://pypi.org/project/AaditsHangman/. \n- Inviting me to your server: https://dsc.gg/hangman/, and creating an account using `/create-account`.')
+    helpEmbed.add_field(name="Improving Aadit's Hangman", value="You can improve our game by contacting me (https://aadits-hangman.herokuapp.com/contact) or by giving us anonymous feedback at https://aadits-hangman.herokuapp.com/feedback")
     helpEmbed.add_field(name="Still confused?", value="Join our [Support Server](https://discord.gg/CRGE5nF) or watch our [video!](https://youtu.be/8DFSjOVh1QA)")
     helpEmbed.add_field(name="Enjoying the bot?", value="If you want to add Aadit's Hangman Bot to your own server so your members can play hangman, click [HERE!](https://discord.com/oauth2/authorize?client_id=748670819156099073&scope=bot&permissions=3072) Also, please see (`/vote`) if you want to get good prizes!")
     helpEmbed.timestamp = datetime.datetime.now()
