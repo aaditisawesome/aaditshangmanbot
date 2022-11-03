@@ -512,7 +512,10 @@ async def rich(interaction):
         except ValueError as e:
             print("The list of coins length < 5")
     richEmbed.set_footer(text='Credit for this command goes to CodeMyGame#0923')
-    await interaction.edit_original_response(content = "", embed=richEmbed)   
+    await interaction.edit_original_response(content = "", embed=richEmbed)  
+@tree.command(description = "Invite link for the bot!")
+async def invite(interaction):
+    await interaction.response.send_message("Enjoying the bot? Invite me to your own server: https://dsc.gg/hangman !")
         
 
 client.run(os.environ['token']) # DIS IS MY TOKEN
