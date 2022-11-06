@@ -441,3 +441,4 @@ async def rich(interaction):
 async def invite(interaction):
     await interaction.response.send_message("Enjoying the bot? Invite me to your own server: https://dsc.gg/hangman !")
         
+client.run(os.environ["token"])
