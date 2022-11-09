@@ -476,6 +476,8 @@ async def post(interaction):
 @tree.command(description = "If you are rich and you're friend is poor, you can give them coins")
 async def pay(interaction, member: discord.Member, amount: int):
     await interaction.response.send_message("Paying money...")
+    if amount <= 0:
+        return await interaction.edit_original_response(content = "You must enter a number greater than 0!")
     transactionWorked = changeItem(interaction.user, "coins", -1 * amount)
     if not transactionWorked:
         await interaction.edit_original_response(content = "You either don't have that many coins, or you don't have an account. Create an account using `/create-account.`")
