@@ -12,8 +12,8 @@ from PyDictionary import PyDictionary
 import requests
 import os
 import json
-import asyncio
 from db_actions import *
+import asyncio
 
 intents = discord.Intents.default();
 intents.message_content = True
@@ -25,9 +25,7 @@ token: The token of my bot
 top.gg-token: My top.gg API token
 discordbotlist.com-token: My discordbotlist.com API token
 """
-scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-creds = ServiceAccountCredentials.from_json_keyfile_dict(json.loads(os.environ["GOOGLE_CREDENTIALS"]), scope)
-gs_client = gspread.authorize(creds)
+
 dictionary = PyDictionary()
 
 client = commands.Bot(command_prefix="$", intents = intents)
@@ -42,63 +40,13 @@ createCmdUsed = []
 deleteCmdUsed = []
 index = 0
 
+rw = RandomWords()
+
+authors = {}
+index = 0
+
 def checkOwner(interaction):
     return interaction.user.id == 697628625150803989 or interaction.user.id == 713467569725767841 or interaction.user.id == 692195032857444412
-
-def openSheet():
-    if creds.access_token_expired:
-        gs_client.login()
-    sheet = gs_client.open("Hangman bot").sheet1
-    return sheet
-
-def changeItem(member, item: str, newAmt: int):
-    sheet = openSheet()
-    try:
-        cell = sheet.find(str(member.id))
-        if item == "coins":
-            increment = 1
-        elif item == "hint":
-            increment = 2
-        elif item == "save":
-            increment = 3
-        column = cell.col + increment
-        currentAmt = int(sheet.cell(cell.row, column).value)
-        if currentAmt + newAmt < 0:
-            return False
-        else:
-            newAmt += currentAmt
-            sheet.update_cell(cell.row, column, newAmt)
-            return True
-    except Exception as e:
-        print(e)
-        return False
-
-def initiateUser(interaction):
-    sheet = openSheet()
-    row = [str(interaction.user.id), 0, 0, 0, 0]
-    index = sheet.row_count
-    sheet.insert_row(row, index)
-
-def deleteUser(interaction):
-    sheet = openSheet()
-    cell = sheet.find(str(interaction.user.id))
-    sheet.delete_rows(cell.row)
-
-def getItems(member):
-    try:
-        sheet = openSheet()
-        cell = sheet.find(str(member.id))
-        column_c = cell.col + 1
-        coins = str(sheet.cell(cell.row, column_c).value)
-        column_h = cell.col + 2
-        hints = str(sheet.cell(cell.row, column_h).value)
-        cell = sheet.find(str(member.id))
-        column_s = cell.col + 3
-        saves = str(sheet.cell(cell.row, column_s).value)
-        return [coins, hints, saves]
-    except Exception as e:
-        print(e)
-        return []
 
 @tasks.loop(seconds=15)
 async def change_status():
@@ -173,11 +121,10 @@ async def confirm_delete(interaction):
 
 @tree.command(description = "The bot's privacy policy!")
 async def policy(interaction):
-    await interaction.response.send_message("Here is our privacy policy and terms of service: https://github.com/aaditisawesome/aaditshangmanbot/blob/main/README.md. If you agree to the privacy policy and want to create an account, use `/create-account`.")
+    await interaction.response.send_message("Here is our privacy policy: https://docs.google.com/document/d/12amP0BbgaTWvn4h9b90lfpuTafW_K-x83bhB3VbZuBU/edit?usp=sharing. If you agree to the privacy policy and want to create an account, use `/create-account`.")
 
 @tree.command(description = "Starts a hangman game!")
 async def start(interaction: discord.Interaction):
-    alpha = "qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM"
     if interaction.user in authors:
         if interaction.channel in authors[interaction.user]:
             await interaction.response.send_message("You already have a running hangman game in this channel! Type `quit` to end it.")
@@ -195,8 +142,8 @@ async def start(interaction: discord.Interaction):
     else:
         authors[interaction.user].append(interaction.channel)
     await interaction.response.send_message("Starting hangman game... type \"quit\" anytime to quit.")
-    sheet = openSheet()
-    if sheet.find(str(interaction.user.id)) == None:
+    hasAccount = userHasAccount(str(interaction.user.id))
+    if not hasAccount:
         await interaction.edit_original_response(content = "You don't have an account yet! In order to play hangman, you need to create an account using `/create-account`")
         authors.pop(interaction.user)
         return
@@ -228,9 +175,8 @@ async def start(interaction: discord.Interaction):
                 break
             elif str_guess == "hint":
                 await interaction.edit_original_response(content = ("Please give me a moment"), attachments = [], embed = None)
-                sheet = openSheet()
                 try:
-                    changeWorked = changeItem(interaction.user, "hint", -1)
+                    changeWorked = changeItem(interaction.user, "hints", -1)
                     if not changeWorked:
                         embed.clear_fields()
                         embed.add_field(name = "Hint unsuccessful", value = "You don't have any hints! They cost 5 coins each! You can buy hints using `/buy hint [amount]`!")
@@ -246,12 +192,15 @@ async def start(interaction: discord.Interaction):
                     print(e)
             elif str_guess == "save":
                 await interaction.edit_original_response(content = ("Please give me a moment"), attachments = [], embed = None)
-                changeWorked = changeItem(interaction.user, "save", -1)
+                changeWorked = changeItem(interaction.user, "saves", -1)
                 if not changeWorked:
                     embed.clear_fields()
                     embed.add_field(name = "Save Unsuccessful", value = "You don\'t have any saves! You earn saves by voting for our bot with `/vote`, or winning giveaways in https://discord.gg/CRGE5nF !")
                 else:
                     tries += 1
+                    pic = "hangman-" + str(9 - tries) + ".png"
+                    if pic == "hangman--1.png":
+                        pic = "hangman-0.png"
                     embed.clear_fields()
                     embed.add_field(name = "Save Used", value = "👌 You now have an extra try!")
             elif str_guess == "defenition" or str_guess == "def":
@@ -282,9 +231,6 @@ async def start(interaction: discord.Interaction):
                 except:
                     await interaction.edit_original_response(content = ('You don\'t have any defenitions! They cost 7 coins each! When the game is over, you can buy hints by typing `/buy defenition`!')
                 """
-            elif str_guess not in alpha:
-                embed.clear_fields()
-                embed.add_field(name = "Guess Unsuccessful", value = "Your guess must be in the alphabet!")
             elif len(str_guess) != 1:
                 embed.clear_fields()
                 embed.add_field(name = "Guess Unsuccessful", value = "You can only guess one letter at a time!")
@@ -298,6 +244,7 @@ async def start(interaction: discord.Interaction):
             else:                
                 tries -= 1
                 wl += str_guess + " "
+                pic = "hangman-" + str(9 - tries) + ".png"
                 embed.clear_fields()
                 embed.add_field(name = "🔴 Guess Wrong", value = str_guess + " is not in the word :( !")
                 print(word)
@@ -326,9 +273,6 @@ async def start(interaction: discord.Interaction):
             print(cl_txt)
             embed.add_field(name = "Word:", value = cl_txt)
             embed.add_field(name = "Wrong tries left:", value = tries)
-            pic = "hangman-" + str(9 - tries) + ".png"
-            if tries > 9:
-                pic = "hangman-0.png"
             file = discord.File(pic, filename=pic)
             embed.set_image(url = f"attachment://{pic}")
             if "_" in cl_txt and tries != 0:
@@ -366,35 +310,33 @@ async def ping(interaction):
 async def bal(interaction, member: discord.Member = None):
     await interaction.response.send_message("Counting money...")
     if member != None:
-        try:
-            items = getItems(member)
+        items = getItems(member)
+        if(len(items) > 0):
             await interaction.edit_original_response(content = (member.mention + " has " + items[0] + " coins! \n They also have " + items[1] + " hints and " + items[2] + " saves!"))
-        except Exception as e:
-            print(str(e))
+        else:
             await interaction.edit_original_response(content = "The specified user doesn't have an account! Tell them to create one using `/create-account`.")
     else:
-        try:
-            items = getItems(interaction.user)
+        items = getItems(interaction.user)
+        if(len(items) > 0):
             await interaction.edit_original_response(content = (interaction.user.mention + ", you have " + items[0] + " coins! \n You also have " + items[1] + " hints and " + items[2] + " saves!"))
-        except Exception as e:
-            print(str(e))
+        else:
             await interaction.edit_original_response(content = "You don't have an account yet! Create one using `/create-account`!")
 @client.command(name="add-coins", description = "Owner only command")
-async def add_coins(ctx, member: discord.Member, amount: int):
-    if ctx.author.id != 697628625150803989 and ctx.author.id != 713467569725767841 and ctx.author.id != 692195032857444412:
-        return await ctx.send("You must own the bot to use this command!")
+async def add_coins(interaction, member: discord.Member, amount: int):
+    if interaction.author.id != 697628625150803989 and interaction.author.id != 713467569725767841 and interaction.author.id != 692195032857444412:
+        return await interaction.response.send_message("You must own the bot to use this command!")
     changeWorked = changeItem(member, "coins", amount)
     if not changeWorked:
-        await ctx.send("They have no account!")
-    await ctx.send("Success!")
+        await interaction.response.send_message("They have no account!")
+    await interaction.response.send_message("Success!")
 @client.command(name = "remove-coins", description = "Owner only command")
-async def remove_coins(ctx, member: discord.Member, amount: int):
-    if ctx.author.id != 697628625150803989 and ctx.author.id != 713467569725767841 and ctx.author.id != 692195032857444412:
-        return await ctx.send("You must own the bot to use this command!")
+async def remove_coins(interaction, member: discord.Member, amount: int):
+    if interaction.author.id != 697628625150803989 and interaction.author.id != 713467569725767841 and interaction.author.id != 692195032857444412:
+        return await interaction.response.send_message("You must own the bot to use this command!")
     transactionWorked = changeItem(member, "coins", -1 * amount)
     if not transactionWorked:
-        await ctx.send("They have no account!")
-    await ctx.send("Success!")
+        await interaction.response.send_message("They have no account!")
+    await interaction.response.send_message("Success!")
 @tree.command(description = "buy an item from the shop")
 async def buy(interaction, item: str, amount : int = 1):
     if item == "hint":
@@ -404,11 +346,10 @@ async def buy(interaction, item: str, amount : int = 1):
             if not transactionWorked:
                 await interaction.edit_original_response(content = "You don't have any coins! Get coins by typing `/start` and win!")
                 return
-            changeItem(interaction.user, "hint", amount)
+            changeItem(interaction.user, "hints", amount)
             await interaction.edit_original_response(content = "Success! You now have " + str(amount) + " more hint(s).")
         except Exception as e:
             print(e)
-            await interaction.edit_original_response(content = "You don't have any coins! Get coins by typing `/start` and win!")
     else:
         await interaction.response.send_message("That is an invalid item. Please see `/shop`")
     # Below is a new currency which has not been released yet
@@ -496,8 +437,6 @@ async def post(interaction):
 @tree.command(description = "If you are rich and you're friend is poor, you can give them coins")
 async def pay(interaction, member: discord.Member, amount: int):
     await interaction.response.send_message("Paying money...")
-    if amount <= 0:
-        return await interaction.edit_original_response(content = "You must enter a number greater than 0!")
     transactionWorked = changeItem(interaction.user, "coins", -1 * amount)
     if not transactionWorked:
         await interaction.edit_original_response(content = "You either don't have that many coins, or you don't have an account. Create an account using `/create-account.`")
@@ -513,25 +452,12 @@ async def rich(interaction):
     hex_number = random.randint(0,16777215)
     richEmbed = discord.Embed(title="Rich", color=hex_number)
     await interaction.response.send_message("Getting richest users...")
-    sheet = openSheet()
-    users = sheet.col_values(1)
-    coins = sheet.col_values(2)
-    users.pop(0)
-    coins.pop(0)
-    for amount in coins:
-        coins[coins.index(amount)] = int(amount)
-    for x in range(5): 
-        try:
-            coinsadd = max(coins)
-            i = coins.index(coinsadd)
-            useradd = await client.fetch_user(users[i])
-            coins.pop(i)
-            users.pop(i)
-            leader = "%d: %s" % (x + 1, useradd.name)
-            embedtext = "%s coins" % (coinsadd)
+    richUsers = getRich()
+    for user_id in richUsers: 
+            useradd = await client.fetch_user(user_id)
+            leader = "%d: %s" % (list(richUsers.keys()).index(str(user_id)) + 1, useradd.name)
+            embedtext = "%s coins" % (richUsers[user_id])
             richEmbed.add_field(name=leader, value=embedtext)
-        except ValueError as e:
-            print("The list of coins length < 5")
     richEmbed.set_footer(text="Credit for this command goes to CodeMyGame#0923")
     await interaction.edit_original_response(content = "", embed=richEmbed)  
 @tree.command(description = "Invite link for the bot!")
