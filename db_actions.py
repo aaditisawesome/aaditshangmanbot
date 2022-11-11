@@ -9,6 +9,8 @@ def changeItem(member, item: str, incrementAmt: int):
     userData = collection.find_one({"_id": str(member.id)})
     if userData == None:
         return False
+    if userData[item] + incrementAmt < 0:
+        return False
     newAmt = userData[item] + incrementAmt
     collection.update_one({"_id": str(member.id)}, {"$set": {item: newAmt}})
     return True

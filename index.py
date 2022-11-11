@@ -35,6 +35,8 @@ tree = client.tree
 rw = RandomWords()
 
 authors = {}
+createCmdUsed = []
+deleteCmdUsed = []
 index = 0
 
 def checkOwner(interaction):
@@ -66,42 +68,58 @@ async def on_ready():
     await tree.sync()
 
 @tree.command(name = "create-account", description = "Create a hangman account to play hangman games with the bot!")
-@app_commands.describe(query = "Confirmation for creating an account")
-async def create_account(interaction, query : str = ""):
-    if query != "confirm":
-        await interaction.response.send_message("Before creating your hangman account, please read our privacy policy at https://docs.google.com/document/d/12amP0BbgaTWvn4h9b90lfpuTafW_K-x83bhB3VbZuBU/edit?usp=sharing. If you agree to the policy and want to proceed with your account creation, use the `/create-account confirm` command.")
+async def create_account(interaction):
+    await interaction.response.send_message("Creating account...")
+    hasAccount = userHasAccount(str(interaction.user.id))
+    if hasAccount:
+        return await interaction.edit_original_response(content = "You already have an account!")
+    await interaction.edit_original_response(content = "Before creating your hangman account, please read our privacy policy and our terms of service at https://github.com/aaditisawesome/aaditshangmanbot/blob/main/README.md. If you agree to the policy and want to proceed with your account creation, use the `/confirm-create` command.")
+    if interaction.user.id not in createCmdUsed:
+        createCmdUsed.append(interaction.user.id)
+@tree.command(name = "confirm-create", description = "Confirm creation for your hangman account!")
+async def confirm_delete(interaction):
+    if interaction.user.id not in createCmdUsed:
+        return await interaction.response.send_message(content = "Please use the `/create-account` command before using this one")
+    await interaction.response.send_message("Creating account...")
+    hasAccount = userHasAccount(str(interaction.user.id))
+    if hasAccount:
+        await interaction.edit_original_response(content = "You already have an account!")
     else:
-        await interaction.response.send_message("Creating account...")
-        hasAccount = userHasAccount(str(interaction.user.id))
-        if hasAccount:
-            await interaction.edit_original_response(content = "You already have an account!")
-        else:
-            initiateUser(interaction)
-            await interaction.edit_original_response(content = "Your account creation has succeeded! You can now play hangman using `/start`. If you ever want to opt out of the privacy policy, delete your account using `/delete-account`.")
+        initiateUser(interaction)
+        await interaction.edit_original_response(content = "Your account creation has succeeded! You can now play hangman using `/start`. If you ever want to opt out of the privacy policy, delete your account using `/delete-account`.")
+    createCmdUsed.remove(interaction.user.id)
 
 @tree.command(name = "delete-account", description = "Delete your hangman account :(")
-@app_commands.describe(query = "Confirm that you want to delete an account (BE CAREFUL)")
-async def delete_account(interaction, query : str = ""):
-    if query != "confirm" and query != "100%confirmyesiagreeomgstopmakingmewritethislol":
-        await interaction.response.send_message("Are you sure you want to delete your account? If you delete your account, all of your coins and inventory will be gone, and you will not be able to play a hangman game without creating an account again! Enter `/delete-account confirm` to confirm deletion.")
-    elif query == "confirm":
-        await interaction.response.send_message("If you delete your account, there is no turning back. If you absolutely want to delete your account, use `/delete-account 100%confirmyesiagreeomgstopmakingmewritethislol`.")
-    elif query == "100%confirmyesiagreeomgstopmakingmewritethislol":
-        await interaction.response.send_message("Deleting your account...")
-        userDeleted = deleteUser(interaction)
-        if userDeleted == True:
-            if interaction.user in authors:
-                authors.pop(interaction.user)
-            await interaction.edit_original_response(content = "Your account has been deleted :(. Please tell us why you deleted your account in https://discord.gg/CRGE5nF so that we can improve our bot!")
-        else:
-            await interaction.edit_original_response(content = "You don't even have an account! What do you expect me to delete? Create an account using `/create-account`.") # I want to make sure everyone knows how to create an account
+async def delete_account(interaction):
+    await interaction.response.send_message("Deleting account...")
+    hasAccount = userHasAccount(str(interaction.user.id))
+    if not hasAccount:
+        return await interaction.edit_original_response(content = "You don\'t even have an account! Create one using `/create-account`")
+    await interaction.edit_original_response(content = "Are you sure you want to delete your account? If you delete your account, all of your coins and inventory will be gone, and you will not be able to play a hangman game without creating an account again! Enter `/confirm-delete` to confirm deletion.")
+    if interaction.user.id not in deleteCmdUsed:
+        deleteCmdUsed.append(interaction.user.id)
+
+@tree.command(name = "confirm-delete", description = "Confirm deletion for your hangman account")
+async def confirm_delete(interaction):
+    if interaction.user.id not in deleteCmdUsed:
+        return await interaction.response.send_message("Please run the `/delete-account` command before running this one")
+    await interaction.response.send_message("Deleting your account...")
+    userDeleted = deleteUser(interaction)
+    if userDeleted == True:
+        if interaction.user in authors:
+            authors.pop(interaction.user)
+        await interaction.edit_original_response(content = "Your account has been deleted :(. Please tell us why you deleted your account in https://discord.gg/CRGE5nF so that we can improve our bot!")
+    else:
+        await interaction.edit_original_response(content = "You don't even have an account! What do you expect me to delete? Create an account using `/create-account`.") # I want to make sure everyone knows how to create an account
+    deleteCmdUsed.remove(interaction.user.id)
 
 @tree.command(description = "The bot's privacy policy!")
 async def policy(interaction):
-    await interaction.response.send_message("Here is our privacy policy: https://docs.google.com/document/d/12amP0BbgaTWvn4h9b90lfpuTafW_K-x83bhB3VbZuBU/edit?usp=sharing. If you agree to the privacy policy and want to create an account, use `/create-account`.")
+    await interaction.response.send_message("Here is our privacy policy and terms of service: https://github.com/aaditisawesome/aaditshangmanbot/blob/main/README.md. If you agree to the privacy policy and want to create an account, use `/create-account`.")
 
 @tree.command(description = "Starts a hangman game!")
 async def start(interaction: discord.Interaction):
+    alpha = "qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM"
     if interaction.user in authors:
         if interaction.channel in authors[interaction.user]:
             await interaction.response.send_message("You already have a running hangman game in this channel! Type `quit` to end it.")
@@ -175,9 +193,6 @@ async def start(interaction: discord.Interaction):
                     embed.add_field(name = "Save Unsuccessful", value = "You don\'t have any saves! You earn saves by voting for our bot with `/vote`, or winning giveaways in https://discord.gg/CRGE5nF !")
                 else:
                     tries += 1
-                    pic = "hangman-" + str(9 - tries) + ".png"
-                    if pic == "hangman--1.png":
-                        pic = "hangman-0.png"
                     embed.clear_fields()
                     embed.add_field(name = "Save Used", value = "👌 You now have an extra try!")
             elif str_guess == "defenition" or str_guess == "def":
@@ -208,6 +223,9 @@ async def start(interaction: discord.Interaction):
                 except:
                     await interaction.edit_original_response(content = ('You don\'t have any defenitions! They cost 7 coins each! When the game is over, you can buy hints by typing `/buy defenition`!')
                 """
+            elif str_guess not in alpha:
+                embed.clear_fields()
+                embed.add_field(name = "Guess Unsuccessful", value = "Your guess must be in the alphabet!")
             elif len(str_guess) != 1:
                 embed.clear_fields()
                 embed.add_field(name = "Guess Unsuccessful", value = "You can only guess one letter at a time!")
@@ -221,7 +239,6 @@ async def start(interaction: discord.Interaction):
             else:                
                 tries -= 1
                 wl += str_guess + " "
-                pic = "hangman-" + str(9 - tries) + ".png"
                 embed.clear_fields()
                 embed.add_field(name = "🔴 Guess Wrong", value = str_guess + " is not in the word :( !")
                 print(word)
@@ -250,6 +267,9 @@ async def start(interaction: discord.Interaction):
             print(cl_txt)
             embed.add_field(name = "Word:", value = cl_txt)
             embed.add_field(name = "Wrong tries left:", value = tries)
+            pic = "hangman-" + str(9 - tries) + ".png"
+            if tries > 9:
+                pic = "hangman-0.png"
             file = discord.File(pic, filename=pic)
             embed.set_image(url = f"attachment://{pic}")
             if "_" in cl_txt and tries != 0:
@@ -299,21 +319,21 @@ async def bal(interaction, member: discord.Member = None):
         else:
             await interaction.edit_original_response(content = "You don't have an account yet! Create one using `/create-account`!")
 @client.command(name="add-coins", description = "Owner only command")
-async def add_coins(interaction, member: discord.Member, amount: int):
-    if interaction.author.id != 697628625150803989 and interaction.author.id != 713467569725767841 and interaction.author.id != 692195032857444412:
-        return await interaction.response.send_message("You must own the bot to use this command!")
+async def add_coins(ctx, member: discord.Member, amount: int):
+    if ctx.author.id != 697628625150803989 and ctx.author.id != 713467569725767841 and ctx.author.id != 692195032857444412:
+        return await ctx.send("You must own the bot to use this command!")
     changeWorked = changeItem(member, "coins", amount)
     if not changeWorked:
-        await interaction.response.send_message("They have no account!")
-    await interaction.response.send_message("Success!")
+        await ctx.send("They have no account!")
+    await ctx.send("Success!")
 @client.command(name = "remove-coins", description = "Owner only command")
-async def remove_coins(interaction, member: discord.Member, amount: int):
-    if interaction.author.id != 697628625150803989 and interaction.author.id != 713467569725767841 and interaction.author.id != 692195032857444412:
-        return await interaction.response.send_message("You must own the bot to use this command!")
+async def remove_coins(ctx, member: discord.Member, amount: int):
+    if ctx.author.id != 697628625150803989 and ctx.author.id != 713467569725767841 and ctx.author.id != 692195032857444412:
+        return await ctx.send("You must own the bot to use this command!")
     transactionWorked = changeItem(member, "coins", -1 * amount)
     if not transactionWorked:
-        await interaction.response.send_message("They have no account!")
-    await interaction.response.send_message("Success!")
+        await ctx.send("They have no account!")
+    await ctx.send("Success!")
 @tree.command(description = "buy an item from the shop")
 async def buy(interaction, item: str, amount : int = 1):
     if item == "hint":
@@ -414,6 +434,8 @@ async def post(interaction):
 @tree.command(description = "If you are rich and you're friend is poor, you can give them coins")
 async def pay(interaction, member: discord.Member, amount: int):
     await interaction.response.send_message("Paying money...")
+    if amount <= 0:
+        return await interaction.edit_original_response(content = "You must enter a number greater than 0!")
     transactionWorked = changeItem(interaction.user, "coins", -1 * amount)
     if not transactionWorked:
         await interaction.edit_original_response(content = "You either don't have that many coins, or you don't have an account. Create an account using `/create-account.`")
