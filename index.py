@@ -73,10 +73,6 @@ async def on_ready():
     change_status.start()
     await tree.sync()
 
-@client.event
-async def on_command_error(ctx, error: commands.CommandError):
-    print(str(error.message))
-
 @tree.command(name = "create-account", description = "Create a hangman account to play hangman games with the bot!")
 async def create_account(interaction):
     await interaction.response.send_message("Creating account...")
