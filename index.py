@@ -73,6 +73,10 @@ async def on_ready():
     change_status.start()
     await tree.sync()
 
+@client.event
+async def on_command_error(ctx, error: commands.CommandError):
+    print(str(error.message))
+
 @tree.command(name = "create-account", description = "Create a hangman account to play hangman games with the bot!")
 async def create_account(interaction):
     await interaction.response.send_message("Creating account...")
@@ -167,6 +171,10 @@ async def start(interaction: discord.Interaction):
             except asyncio.TimeoutError:
                 await interaction.edit_original_response(content = "The game has timed out. Please start a new game with `/start` .", attachments = [], embed = None)
                 break
+            try:
+                await guess.delete()
+            except discord.Forbidden:
+                pass
             str_guess = str(guess.content.lower())
             print(guess)
             print(str_guess)
@@ -261,6 +269,8 @@ async def start(interaction: discord.Interaction):
                 embed.title = ":tada: " + interaction.user.name + " won the hangman game! :tada:"
                 embed.add_field(name = ":tada: You Won! :tada:", value = "You got 7 coins, good job!")
                 embed.set_footer(text = "Thanks for playing!")
+                if not interaction.app_permissions.manage_messages:
+                    embed.set_footer(text="If you give me the \"Manage Messages\" permission, I will be able to delete the messages so you don't need to keep scrolling up!")
             elif tries == 0:
                 embed.clear_fields()
                 embed.title = "👎 " + interaction.user.name + " lost the hangman game! 👎"
@@ -285,6 +295,10 @@ async def start(interaction: discord.Interaction):
                 break
         except Exception as e:
             await interaction.edit_original_response(content = ("OOF! There was an error... DM <@697628625150803989> with this error: `" + str(e) + "`"), attachments = [], embed = None)
+            if len(authors[interaction.user]) > 1:
+                authors[interaction.user].remove(interaction.channel)
+            else:
+                authors.pop(interaction.user)
             raise e
     if len(authors[interaction.user]) > 1:
         authors[interaction.user].remove(interaction.channel)
