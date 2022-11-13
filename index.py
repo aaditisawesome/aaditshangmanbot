@@ -13,6 +13,7 @@ import requests
 import os
 import json
 from db_actions import *
+from buttons import *
 import asyncio
 
 intents = discord.Intents.default();
@@ -75,49 +76,70 @@ async def on_ready():
 
 @tree.command(name = "create-account", description = "Create a hangman account to play hangman games with the bot!")
 async def create_account(interaction):
-    await interaction.response.send_message("Creating account...")
+    await interaction.response.send_message("Creating account...", ephemeral=True)
     hasAccount = userHasAccount(str(interaction.user.id))
     if hasAccount:
         return await interaction.edit_original_response(content = "You already have an account!")
-    await interaction.edit_original_response(content = "Before creating your hangman account, please read our privacy policy and our terms of service at https://github.com/aaditisawesome/aaditshangmanbot/blob/main/README.md. If you agree to the policy and want to proceed with your account creation, use the `/confirm-create` command.")
-    if interaction.user.id not in createCmdUsed:
-        createCmdUsed.append(interaction.user.id)
-@tree.command(name = "confirm-create", description = "Confirm creation for your hangman account!")
-async def confirm_delete(interaction):
-    if interaction.user.id not in createCmdUsed:
-        return await interaction.response.send_message(content = "Please use the `/create-account` command before using this one")
-    await interaction.response.send_message("Creating account...")
-    hasAccount = userHasAccount(str(interaction.user.id))
-    if hasAccount:
-        await interaction.edit_original_response(content = "You already have an account!")
-    else:
-        initiateUser(interaction)
-        await interaction.edit_original_response(content = "Your account creation has succeeded! You can now play hangman using `/start`. If you ever want to opt out of the privacy policy, delete your account using `/delete-account`.")
-    createCmdUsed.remove(interaction.user.id)
+    view = ConfirmPrompt(interaction.user)
+    await interaction.edit_original_response(content = "Before creating your hangman account, please read our privacy policy and our terms of service at https://github.com/aaditisawesome/aaditshangmanbot/blob/main/README.md. If you agree to the policy and want to proceed with your account creation, use the `/confirm-create` command.", view=view)
+    await view.wait()
+    if view.confirmed == None:
+        return await interaction.edit_original_response(content = "Interaction has timed out...", view=None)
+    if view.confirmed:
+        userInitiated = initiateUser(interaction)
+        if userInitiated == True:
+            if interaction.user in authors:
+                authors.pop(interaction.user)
+            return await interaction.edit_original_response(content = "Your account has been created! You can now play hangman using `/start`.", view=None)
+        else:
+            return await interaction.edit_original_response(content = "You already have an account!", view=None) 
+    await interaction.edit_original_response(content = "You have decided not to create an account. Please tell us what you didn't agree with in the privacy policy or ToS in https://discord.gg/CRGE5nF .", view=None)
+
+# async def confirm_create(interaction):
+#     if interaction.user.id not in createCmdUsed:
+#         return await interaction.response.send_message(content = "Please use the `/create-account` command before using this one", ephemeral=True)
+#     await interaction.response.send_message("Creating account...", ephemeral=True)
+#     hasAccount = userHasAccount(str(interaction.user.id))
+#     if hasAccount:
+#         await interaction.edit_original_response(content = "You already have an account!")
+#     else:
+#         initiateUser(interaction)
+#         await interaction.edit_original_response(content = "Your account creation has succeeded! You can now play hangman using `/start`. If you ever want to opt out of the privacy policy, delete your account using `/delete-account`.")
+#     createCmdUsed.remove(interaction.user.id)
 
 @tree.command(name = "delete-account", description = "Delete your hangman account :(")
 async def delete_account(interaction):
-    await interaction.response.send_message("Deleting account...")
+    await interaction.response.send_message("Deleting account...", ephemeral = True)
     hasAccount = userHasAccount(str(interaction.user.id))
     if not hasAccount:
         return await interaction.edit_original_response(content = "You don\'t even have an account! Create one using `/create-account`")
-    await interaction.edit_original_response(content = "Are you sure you want to delete your account? If you delete your account, all of your coins and inventory will be gone, and you will not be able to play a hangman game without creating an account again! Enter `/confirm-delete` to confirm deletion.")
-    if interaction.user.id not in deleteCmdUsed:
-        deleteCmdUsed.append(interaction.user.id)
-
-@tree.command(name = "confirm-delete", description = "Confirm deletion for your hangman account")
-async def confirm_delete(interaction):
-    if interaction.user.id not in deleteCmdUsed:
-        return await interaction.response.send_message("Please run the `/delete-account` command before running this one")
-    await interaction.response.send_message("Deleting your account...")
-    userDeleted = deleteUser(interaction)
-    if userDeleted == True:
-        if interaction.user in authors:
-            authors.pop(interaction.user)
-        await interaction.edit_original_response(content = "Your account has been deleted :(. Please tell us why you deleted your account in https://discord.gg/CRGE5nF so that we can improve our bot!")
-    else:
-        await interaction.edit_original_response(content = "You don't even have an account! What do you expect me to delete? Create an account using `/create-account`.") # I want to make sure everyone knows how to create an account
-    deleteCmdUsed.remove(interaction.user.id)
+    view = ConfirmPrompt(interaction.user)
+    await interaction.edit_original_response(content = "Are you sure you want to delete your account? If you delete your account, all of your coins and inventory will be gone, and you will not be able to play a hangman game without creating an account again!", view=view)
+    await view.wait()
+    if view.confirmed == None:
+        return await interaction.edit_original_response(content = "Interaction has timed out...", view=None)
+    if view.confirmed:
+        userDeleted = deleteUser(interaction)
+        if userDeleted == True:
+            if interaction.user in authors:
+                authors.pop(interaction.user)
+            return await interaction.edit_original_response(content = "Your account has been deleted :(. Please tell us why you deleted your account in https://discord.gg/CRGE5nF so that we can improve our bot!", view=None)
+        else:
+            return await interaction.edit_original_response(content = "You don't even have an account! What do you expect me to delete? Create an account using `/create-account`.", view=None) 
+    await interaction.edit_original_response(content = "You have decided not to delete your account. I am proud of you!", view=None)
+# @tree.command(name = "confirm-delete", description = "Confirm deletion for your hangman account")
+# async def confirm_delete(interaction):
+#     if interaction.user.id not in deleteCmdUsed:
+#         return await interaction.response.send_message("Please run the `/delete-account` command before running this one", ephemeral=True)
+#     await interaction.response.send_message("Deleting your account...", ephemeral=True)
+#     userDeleted = deleteUser(interaction)
+#     if userDeleted == True:
+#         if interaction.user in authors:
+#             authors.pop(interaction.user)
+#         await interaction.edit_original_response(content = "Your account has been deleted :(. Please tell us why you deleted your account in https://discord.gg/CRGE5nF so that we can improve our bot!")
+#     else:
+#         await interaction.edit_original_response(content = "You don't even have an account! What do you expect me to delete? Create an account using `/create-account`.") # I want to make sure everyone knows how to create an account
+#     deleteCmdUsed.remove(interaction.user.id)
 
 @tree.command(description = "The bot's privacy policy!")
 async def policy(interaction):
@@ -127,7 +149,7 @@ async def policy(interaction):
 async def start(interaction: discord.Interaction):
     if interaction.user in authors:
         if interaction.channel in authors[interaction.user]:
-            await interaction.response.send_message("You already have a running hangman game in this channel! Type `quit` to end it.")
+            await interaction.response.send_message("You already have a running hangman game in this channel! Type `quit` to end it.", ephemeral=True)
             return
     def check(m):
         return m.author == interaction.user and m.channel == interaction.channel
@@ -300,6 +322,47 @@ async def start(interaction: discord.Interaction):
         authors[interaction.user].remove(interaction.channel)
     else:
         authors.pop(interaction.user)
+
+@tree.command()
+async def tictactoe(interaction: discord.Interaction, opponent: discord.User, bet: int):
+    if bet <= 0:
+        return await interaction.response.send_message("Enter a bet greater than 0!")
+    if opponent.bot:
+        return await interaction.response.send_message("Ainnoway u want to play with a bot lol")
+    if interaction.user == opponent:
+        return await interaction.response.send_message("Bruh, make some friends. You can't play with yourself!")
+    if not userHasAccount(interaction.user.id):
+        return await interaction.response.send_message("You don\'t have an account yet! Create one using `/create-account`!")
+    if not userHasAccount(opponent.id):
+        return await interaction.response.send_message("The opponent you mentioned doesn't have an account yet!")
+
+    await interaction.response.send_message("Starting Tic Tac Toe game...")
+    user1Balance = int(getItems(interaction.user)[0])
+    if user1Balance < bet:
+        return await interaction.edit_original_response(content="You don't have that many coins! Please enter a bet that you can afford.")
+    user2Balance = int(getItems(opponent)[0])
+    if user2Balance < bet:
+        return await interaction.edit_original_response(content="Your opponent doesn't have that many coins! Enter a smaller bet or a richer opponent.")
+
+    confirmView = ConfirmPrompt(opponent)
+    await interaction.edit_original_response(content=opponent.mention + ", do you accept " + interaction.user.mention + "'s bet of " + str(bet) + " coins for winning a Tic Tac Toe game? (If you lose, you lose " + str(bet) + " coins!)", view=confirmView)
+    await confirmView.wait()
+    if confirmView.confirmed == None:
+        return await interaction.edit_original_response(content="Your opponent didn't respond in time", view=None)        
+    if not confirmView.confirmed:
+        return await interaction.edit_original_response(content="Your opponent has denied your bet", view=None)
+    view = TicTacToe(user1 = interaction.user, user2 = opponent, interaction=interaction)
+    await interaction.edit_original_response(content = interaction.user.mention + " vs " + opponent.mention + ": Tic Tac Toe\n\n" + interaction.user.mention + ", it is your turn! You have 1 minute to respond before you automatically lose!", view=view)
+    await view.wait()
+    if view.winner is None and not view.tie:
+        view.disableAll()
+        changeItem(view.not_turn, "coins", bet)
+        changeItem(view.turn, "coins", -1 * bet)
+        return await interaction.edit_original_response(content = interaction.user.mention + " vs " + opponent.mention + ": Tic Tac Toe\n\nThe game has timed out, so " + view.not_turn.mention + " automatically won!\n" + view.not_turn.mention + " won " + str(bet) + " coins, and " + view.turn.mention + " lost " + str(bet) + " coins!", view=view)
+    await interaction.edit_original_response(content = view.not_turn.mention + " won!\n" + view.winner.mention + " won " + str(bet) + " coins, and " + view.loser.mention + " lost " + str(bet) + " coins!", view=view)
+    changeItem(view.winner, "coins", bet)
+    changeItem(view.loser, "coins", -1 * bet)
+        
 
 @tree.command(description = "Brief overview of the commands and other information")
 async def help(interaction):

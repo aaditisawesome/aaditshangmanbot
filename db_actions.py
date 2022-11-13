@@ -5,17 +5,19 @@ mongo_client = MongoClient(os.environ["MONGO_DB_URL"])
 db = mongo_client.hangman
 collection = db.currency
 
-def changeItem(member, item: str, incrementAmt: int):
-    userData = collection.find_one({"_id": str(member.id)})
+def changeItem(user, item: str, incrementAmt: int):
+    userData = collection.find_one({"_id": str(user.id)})
     if userData == None:
         return False
     if userData[item] + incrementAmt < 0:
         return False
     newAmt = userData[item] + incrementAmt
-    collection.update_one({"_id": str(member.id)}, {"$set": {item: newAmt}})
+    collection.update_one({"_id": str(user.id)}, {"$set": {item: newAmt}})
     return True
 
 def initiateUser(interaction):
+    if userHasAccount(interaction.user.id):
+        return False
     userData = {
         "_id": str(interaction.user.id),
         "coins": 0,
@@ -24,6 +26,7 @@ def initiateUser(interaction):
         "defenitions": 0
     }
     collection.insert_one(userData)
+    return True
 
 def deleteUser(interaction):
     userData = collection.find_one({"_id": str(interaction.user.id)})
@@ -32,8 +35,8 @@ def deleteUser(interaction):
     collection.delete_one({"_id": str(interaction.user.id)})
     return True
 
-def getItems(member):
-    userData = collection.find_one({"_id": str(member.id)})
+def getItems(user):
+    userData = collection.find_one({"_id": str(user.id)})
     if userData == None:
         return []
     return [str(userData["coins"]), str(userData["hints"]), str(userData["saves"])]
