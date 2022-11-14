@@ -121,7 +121,7 @@ async def confirm_delete(interaction):
 
 @tree.command(description = "The bot's privacy policy!")
 async def policy(interaction):
-    await interaction.response.send_message("Here is our privacy policy: https://docs.google.com/document/d/12amP0BbgaTWvn4h9b90lfpuTafW_K-x83bhB3VbZuBU/edit?usp=sharing. If you agree to the privacy policy and want to create an account, use `/create-account`.")
+    await interaction.response.send_message("Here is our privacy policy: https://github.com/aaditisawesome/aaditshangmanbot/blob/main/README.md . If you agree to the privacy policy and want to create an account, use `/create-account`.")
 
 @tree.command(description = "Starts a hangman game!")
 async def start(interaction: discord.Interaction):
