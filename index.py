@@ -336,16 +336,15 @@ async def tictactoe(interaction: discord.Interaction, opponent: discord.User, be
     if not userHasAccount(opponent.id):
         return await interaction.response.send_message("The opponent you mentioned doesn't have an account yet!")
 
-    await interaction.response.send_message("Starting Tic Tac Toe game...")
     user1Balance = int(getItems(interaction.user)[0])
     if user1Balance < bet:
-        return await interaction.edit_original_response(content="You don't have that many coins! Please enter a bet that you can afford.")
+        return await interaction.response.send_message(content="You don't have that many coins! Please enter a bet that you can afford.")
     user2Balance = int(getItems(opponent)[0])
     if user2Balance < bet:
-        return await interaction.edit_original_response(content="Your opponent doesn't have that many coins! Enter a smaller bet or a richer opponent.")
+        return await interaction.response.send_message(content="Your opponent doesn't have that many coins! Enter a smaller bet or a richer opponent.")
 
     confirmView = ConfirmPrompt(opponent)
-    await interaction.edit_original_response(content=opponent.mention + ", do you accept " + interaction.user.mention + "'s bet of " + str(bet) + " coins for winning a Tic Tac Toe game? (If you lose, you lose " + str(bet) + " coins!)", view=confirmView)
+    await interaction.response.send_message(content=opponent.mention + ", do you accept " + interaction.user.mention + "'s bet of " + str(bet) + " coins for winning a Tic Tac Toe game? (If you lose, you lose " + str(bet) + " coins!)", view=confirmView)
     await confirmView.wait()
     if confirmView.confirmed == None:
         return await interaction.edit_original_response(content="Your opponent didn't respond in time", view=None)        
