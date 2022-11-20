@@ -347,14 +347,14 @@ async def remove_coins(interaction, member: discord.Member, amount: int):
     if not transactionWorked:
         await interaction.response.send_message("They have no account!")
     await interaction.response.send_message("Success!")
-@tree.command(description = "buy an item from the shop")
+@tree.command(description = "Buy an item from the shop")
 async def buy(interaction, item: str, amount : int = 1):
     if item == "hint":
-        await interaction.response.send_message("Giving you a hint...")
+        await interaction.response.send_message("Giving you hint(s)...")
         try:
-            transactionWorked = changeItem(interaction.user, "coins", -5)
+            transactionWorked = changeItem(interaction.user, "coins", -5 * amount)
             if not transactionWorked:
-                await interaction.edit_original_response(content = "You don't have any coins! Get coins by typing `/start` and win!")
+                await interaction.edit_original_response(content = "You don't have that many coins (Hints cost 5 coins each)! Get coins by winning hangman games `/start`! (If you haven't created an account, create one with `/create-account`).")
                 return
             changeItem(interaction.user, "hints", amount)
             await interaction.edit_original_response(content = "Success! You now have " + str(amount) + " more hint(s).")
