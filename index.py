@@ -37,8 +37,8 @@ tree = client.tree
 rw = RandomWords()
 
 authors = {}
-createCmdUsed = []
-deleteCmdUsed = []
+# createCmdUsed = []
+# deleteCmdUsed = []
 index = 0
 
 rw = RandomWords()
@@ -157,6 +157,7 @@ async def start(interaction: discord.Interaction):
     cl = ""
     wl = ""
     tries = 9
+    usingView = True
     embed = discord.Embed(title = interaction.user.name + "'s hangman game")
     print(word)
     if interaction.user not in authors:
@@ -180,24 +181,42 @@ async def start(interaction: discord.Interaction):
     file = discord.File(pic, filename=pic)
     embed.set_image(url=f"attachment://{pic}")
     embed.set_footer(text = "Please enter your next guess. (or \"hint\"/\"save\"/\"quit\")")
-    await interaction.edit_original_response(content = "", attachments = [file], embed=embed)
+    if not usingView:
+        await interaction.edit_original_response(content = "", attachments = [file], embed=embed)
+    else:
+        view = Hangman(interaction.user)
+        await interaction.edit_original_response(content = "", attachments = [file], embed=embed, view=view)
     embed.clear_fields()
     while True:
         try:
-            try:
-                guess = await client.wait_for("message", timeout = 60.0, check=check)
-            except asyncio.TimeoutError:
-                await interaction.edit_original_response(content = "The game has timed out. Please start a new game with `/start` .", attachments = [], embed = None)
-                break
-            try:
-                await guess.delete()
-            except discord.Forbidden:
-                pass
-            str_guess = str(guess.content.lower())
-            print(guess)
-            print(str_guess)
+            if not usingView:
+                try:
+                    guess = await client.wait_for("message", timeout = 60.0, check=check)
+                except asyncio.TimeoutError:
+                    await interaction.edit_original_response(content = "The game has timed out. Please start a new game with `/start` .", attachments = [], embed = None)
+                    break
+                try:
+                    await guess.delete()
+                except discord.Forbidden:
+                    pass
+                str_guess = str(guess.content.lower())
+                print(guess)
+                print(str_guess)
+            else:
+                await view.wait()
+                if view.guessed_letter is not None:
+                    str_guess = view.guessed_letter.lower()
+                elif view.hint_used:
+                    str_guess = "hint"
+                elif view.save_used:
+                    str_guess = "save"
+                elif view.game_quit:
+                    str_guess = "quit"
+                else:
+                    await interaction.edit_original_response(content = "The game has timed out. Please start a new game with `/start` .", attachments = [], embed = None, view=None)
+                    break
             if str_guess == "quit":
-                await interaction.edit_original_response(content = ("Thanks for playing! You have quit the game."), attachments = [], embed = None)
+                await interaction.edit_original_response(content = ("Thanks for playing! You have quit the game."), attachments = [], embed = None, view = None)
                 break
             elif str_guess == "hint":
                 await interaction.edit_original_response(content = ("Please give me a moment"), attachments = [], embed = None)
@@ -225,8 +244,6 @@ async def start(interaction: discord.Interaction):
                 else:
                     tries += 1
                     pic = "hangman-" + str(9 - tries) + ".png"
-                    if pic == "hangman--1.png":
-                        pic = "hangman-0.png"
                     embed.clear_fields()
                     embed.add_field(name = "Save Used", value = "👌 You now have an extra try!")
             elif str_guess == "defenition" or str_guess == "def":
@@ -301,18 +318,24 @@ async def start(interaction: discord.Interaction):
             print(cl_txt)
             embed.add_field(name = "Word:", value = cl_txt)
             embed.add_field(name = "Wrong tries left:", value = tries)
+            if tries > 9:
+                pic = "hangman-0.png"
             file = discord.File(pic, filename=pic)
             embed.set_image(url = f"attachment://{pic}")
             if "_" in cl_txt and tries != 0:
                 embed.set_footer(text = "Please enter your next guess. (or \"hint\"/\"save\"/\"quit\")")
-            await interaction.edit_original_response(content = "", attachments = [file], embed=embed)
+            if usingView:
+                view = Hangman(interaction.user)
+                await interaction.edit_original_response(content = "", attachments = [file], embed=embed, view=view)
+            else:
+                await interaction.edit_original_response(content = "", attachments = [file], embed=embed)
             if "_" not in cl_txt:
                 changeItem(interaction.user, "coins", 7)
                 break
             elif tries == 0:
                 break
         except Exception as e:
-            await interaction.edit_original_response(content = ("OOF! There was an error... DM <@697628625150803989> with this error: `" + str(e) + "`"), attachments = [], embed = None)
+            await interaction.edit_original_response(content = ("OOF! There was an error... DM <@697628625150803989> with this error: `" + str(e) + "`"), attachments = [], embed = None, view=None)
             if len(authors[interaction.user]) > 1:
                 authors[interaction.user].remove(interaction.channel)
             else:
@@ -376,8 +399,14 @@ async def help(interaction):
     helpEmbed.set_footer(text="Thank you so much!")
     await interaction.response.send_message("https://discord.gg/CRGE5nF", embed=helpEmbed)
 @tree.command(description = "The ping of the bot")
-async def ping(interaction):
-    await interaction.response.send_message("Pong! `" + str(client.latency * 1000) + "ms`")
+async def ping(interaction: discord.Interaction):
+    # await interaction.response.send_message("Pong! `" + str(client.latency * 1000) + "ms`")
+    interaction_creation = interaction.created_at.replace(tzinfo=None).timestamp() * 1000
+    received_time = datetime.datetime.utcnow().timestamp() * 1000
+    await interaction.response.send_message(f"API Latency: `{round(client.latency * 1000, 2)}ms`\nPing: `{round(received_time - interaction_creation, 2)}ms`")
+    respond_time = datetime.datetime.utcnow().timestamp() * 1000
+    await interaction.edit_original_response(content=f"API Latency: `{round(client.latency * 1000, 2)}ms`\nPing: `{round(received_time - interaction_creation, 2)}ms`\nLatency: `{round(respond_time - interaction_creation, 2)}ms`")
+
 @tree.command(description = "Check how many coins you have!")
 async def bal(interaction, member: discord.Member = None):
     await interaction.response.send_message("Counting money...")
