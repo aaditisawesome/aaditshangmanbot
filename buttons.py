@@ -113,7 +113,7 @@ class TicTacToe(discord.ui.View):
         button: TicTacToeButton
         for button in self.children:
             button.disabled = True
-
+# End Tic Tac Toe
 
 
 # Confirm Prompt
@@ -140,6 +140,9 @@ class ConfirmPrompt(discord.ui.View):
         self.confirmed = False
         await interaction.response.defer()
         self.stop()
+# End Confirm Prompt
+
+
 
 # Hangman Game
 class HangmanModal(discord.ui.Modal):
@@ -163,10 +166,9 @@ class HangmanModal(discord.ui.Modal):
     async def on_error(self, interaction: discord.Interaction, error: Exception):
         print(error)
         
-
 class Hangman(discord.ui.View):
     def __init__(self, user):
-        super().__init__(timeout=10)
+        super().__init__(timeout=60)
         self.user = user
         self.hint_used = False
         self.save_used = False
@@ -210,3 +212,146 @@ class Hangman(discord.ui.View):
         self.game_quit = True
         await interaction.response.defer()
         self.stop()
+# End Hangman Game
+
+
+# User Settings
+class UserSettingsModal(discord.ui.Modal):
+    bet_input = discord.ui.TextInput(label = " ")
+    def __init__(self, modalType, default):
+        self.modalType = modalType
+        if self.modalType == "minTicTacToe":
+            title = "Configure Minimum Tic Tac Toe Bet"
+            self.bet_input.placeholder = "0"
+            self.bet_input.label =  "Minimum Bet amount\n(0 for no minimum bet)"
+        else:
+            title = "Configure Maximum Tic Tac Toe Bet"
+            self.bet_input.placeholder = "100"
+            self.bet_input.label =  "Maximum Bet amount\n(0 for no maximum bet)"
+        super().__init__(title=title)
+        self.bet_input.default = default
+        self.newValue = None
+        self.changeAllowed = None
+    async def on_submit(self, interaction: discord.Interaction):
+        try:
+            self.newValue = int(self.bet_input.value)
+            if self.newValue < 0:
+                self.changeAllowed = False
+                return await interaction.response.send_message("It must be a positive number!", ephemeral = True)
+            if self.newValue == self.bet_input.default:
+                self.changeAllowed = False
+                return await interaction.response.send_message("The number that you entered is already set for that setting!", ephemeral = True)
+            if self.newValue != 0:
+                if self.modalType == "maxTicTacToe":
+                    if self.newValue <= 10:
+                        await interaction.response.send_message("We have changed your maximum tic tac toe bet to " + str(self.newValue) + "!\nPlease keep in mind that you have entered a pretty low maximum bet, so many people may not want to play tic tac toe with you!", ephemeral = True)
+                    else:
+                        await interaction.response.send_message("We have changed your maximum tic tac toe bet to " + str(self.newValue) + "!", ephemeral = True)
+                else:
+                    if self.newValue >= 40:
+                        await interaction.response.send_message("We have changed your minimum tic tac toe bet to " + str(self.newValue) + "!\nPlease keep in mind that you have entered a pretty high minimum bet, so many won't be rich enough to play tic tac toe with you!", ephemeral = True)
+                    else:
+                        await interaction.response.send_message("We have changed your minimum tic tac toe bet to " + str(self.newValue) + "!", ephemeral = True)
+                self.changeAllowed = True
+            else:
+                if self.modalType == "minTicTacToe":
+                    await interaction.response.send_message("You now have no minimum bet!", ephemeral = True)
+                else:
+                    await interaction.response.send_message("You now have no maximum bet!", ephemeral = True)
+                self.changeAllowed = True
+                self.newValue = None
+        except ValueError:
+            await interaction.response.send_message("That is not a valid number!", ephemeral=True)
+            self.changeAllowed = False
+        self.stop()
+
+class UserSettingsModalButton(discord.ui.Button):
+    def __init__(self, label, style, disabled, row, modalType, default):
+        super().__init__(label=label, style=style, disabled=disabled, row=row)
+        self.modalType = modalType
+        self.default = default
+    async def callback(self, interaction: discord.Interaction):
+        modal = UserSettingsModal(self.modalType, self.default)
+        await interaction.response.send_modal(modal)
+        await modal.wait()
+        view: UserSettings = self.view
+        view.newValue = modal.newValue
+        view.changeAllowed = modal.changeAllowed
+        view.stop()
+
+class UserSettingsButton(discord.ui.Button):
+    def __init__(self, label, style, disabled, row):
+        super().__init__(label=label, style=style, disabled=disabled, row=row)
+    async def callback(self, interaction: discord.Interaction):
+        view: UserSettings = self.view
+        if self.label == "Enable":
+            view.newValue = True
+            await interaction.response.send_message("That setting has been enabled!", ephemeral=True)
+        elif self.label == "Disable":
+            view.newValue = False
+            await interaction.response.send_message("That setting has been enabled!", ephemeral=True)
+        else:
+            await interaction.response.edit_message(view=None)
+            view.quited = True
+            view.disableAll()
+            view.stop()
+            return
+        view.changeAllowed = True
+        view.stop()
+
+class UserSettingsDropdown(discord.ui.Select):
+    def __init__(self, options, currentSettings):
+        super().__init__(options=options, placeholder="Select Setting")
+        self.currentSettings = currentSettings
+    async def callback(self, interaction: discord.Interaction):
+        view: UserSettings = self.view
+        view.clearButtons()
+        view.chosen = self.values[0]
+        if view.chosen == "hangman_buttons" or view.chosen == "ticTacToe":
+            view.add_item(UserSettingsButton(label="Enable", style = discord.ButtonStyle.green, disabled = self.currentSettings[view.chosen], row=1))
+            view.add_item(UserSettingsButton(label="Disable", style = discord.ButtonStyle.red, disabled = not self.currentSettings[view.chosen], row=1))
+            view.add_item(UserSettingsButton(label="Quit", style = discord.ButtonStyle.blurple, disabled = False, row=1))
+        else:
+            default = self.currentSettings[view.chosen]
+            if default is None:
+                default = 0
+            view.add_item(UserSettingsModalButton(label="Change Limit", style = discord.ButtonStyle.grey, disabled = False, row=1, modalType = view.chosen, default=str(default)))
+            view.add_item(UserSettingsButton(label="Quit", style = discord.ButtonStyle.blurple, disabled = False, row=1))
+        for option in self.options:
+            if option.value == view.chosen:
+                self.placeholder = option.label
+                break
+        await interaction.response.edit_message(view=view)
+
+class UserSettings(discord.ui.View):
+    def __init__(self, user, tttenabled: bool, currentSettings):
+        super().__init__(timeout=60)
+        self.user = user
+        options = [
+            discord.SelectOption(label="Hangman Buttons", value = "hangman_buttons", description="Select to configure your setting for hangman buttons!"),
+            discord.SelectOption(label="Tic Tac Toe", value = "ticTacToe", description="Select to configure your setting allowing Tic Tac Toe!")
+        ]
+        if tttenabled:
+            options.append(discord.SelectOption(label="Minimum Tic Tac Toe bet", value = "minTicTacToe", description="Select to configure your setting for your minimum Tic Tac Toe bet!"))
+            options.append(discord.SelectOption(label="Maximum Tic Tac Toe bet", value = "maxTicTacToe", description="Select to configure your setting for your maximum Tic Tac Toe bet!"))
+        self.add_item(UserSettingsDropdown(options, currentSettings))
+        self.add_item(UserSettingsButton(label="Quit", style = discord.ButtonStyle.blurple, disabled = False, row=1))
+        self.chosen = None
+        self.newValue = None
+        self.quited = False
+        self.changeAllowed = None
+    async def interaction_check(self, interaction: discord.Interaction):
+        if interaction.user != self.user:
+            await interaction.response.defer()
+            return False
+        return True
+    def disableAll(self):
+        for item in self.children:
+            if item.row == 1 and item.label != "Quit":
+                self.remove_item(item)
+            else:
+                item.disabled = True
+    def clearButtons(self):
+        for item in self.children:
+            if item.row == 1:
+                self.remove_item(item)

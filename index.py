@@ -1,17 +1,13 @@
 import discord
 from discord import app_commands
-from discord.app_commands import CommandTree
 from discord.ext import commands, tasks
 from random_words import RandomWords
 import time
 import random
-import gspread
-from oauth2client.service_account import ServiceAccountCredentials
 import datetime
 from PyDictionary import PyDictionary
 import requests
 import os
-import json
 from db_actions import *
 from buttons import *
 import asyncio
@@ -29,10 +25,10 @@ discordbotlist.com-token: My discordbotlist.com API token
 
 dictionary = PyDictionary()
 
-client = commands.Bot(command_prefix="$", intents = intents)
-client.remove_command("help")
-client.add_check(commands.bot_has_permissions(send_messages=True, read_messages=True).predicate)
-tree = client.tree
+bot = commands.Bot(command_prefix="$", intents = intents)
+bot.remove_command("help")
+bot.add_check(commands.bot_has_permissions(send_messages=True, read_messages=True).predicate)
+tree = bot.tree
 
 rw = RandomWords()
 
@@ -54,7 +50,7 @@ async def change_status():
     global index
     statuses = [
         "https://aadits-hangman.herokuapp.com",
-        f"{len(client.guilds)} server(s)",
+        f"{len(bot.guilds)} server(s)",
         "/help || /start",
         "Youtube",
         "people winning hangman",
@@ -63,21 +59,21 @@ async def change_status():
         "https://dsc.gg/hangman",
         "for contributions on https://github.com/aaditisawesome/aaditshangmanbot"
     ]
-    await client.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name=statuses[index]))
+    await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name=statuses[index]))
     index +=1
     if index == len(statuses):
         index = 0
 
-@client.event
+@bot.event
 async def on_ready():
     print("Online!")
     change_status.start()
     await tree.sync()
 
 @tree.command(name = "create-account", description = "Create a hangman account to play hangman games with the bot!")
-async def create_account(interaction):
+async def create_account(interaction: discord.Interaction):
     await interaction.response.send_message("Creating account...", ephemeral=True)
-    hasAccount = userHasAccount(str(interaction.user.id))
+    hasAccount = userHasAccount(interaction.user.id)
     if hasAccount:
         return await interaction.edit_original_response(content = "You already have an account!")
     view = ConfirmPrompt(interaction.user)
@@ -86,7 +82,7 @@ async def create_account(interaction):
     if view.confirmed == None:
         return await interaction.edit_original_response(content = "Interaction has timed out...", view=None)
     if view.confirmed:
-        userInitiated = initiateUser(interaction)
+        userInitiated = initiateUser(interaction.user.id)
         if userInitiated == True:
             if interaction.user in authors:
                 authors.pop(interaction.user)
@@ -108,9 +104,9 @@ async def create_account(interaction):
 #     createCmdUsed.remove(interaction.user.id)
 
 @tree.command(name = "delete-account", description = "Delete your hangman account :(")
-async def delete_account(interaction):
+async def delete_account(interaction: discord.Interaction):
     await interaction.response.send_message("Deleting account...", ephemeral = True)
-    hasAccount = userHasAccount(str(interaction.user.id))
+    hasAccount = userHasAccount(interaction.user.id)
     if not hasAccount:
         return await interaction.edit_original_response(content = "You don\'t even have an account! Create one using `/create-account`")
     view = ConfirmPrompt(interaction.user)
@@ -119,7 +115,7 @@ async def delete_account(interaction):
     if view.confirmed == None:
         return await interaction.edit_original_response(content = "Interaction has timed out...", view=None)
     if view.confirmed:
-        userDeleted = deleteUser(interaction)
+        userDeleted = deleteUser(interaction.user.id)
         if userDeleted == True:
             if interaction.user in authors:
                 authors.pop(interaction.user)
@@ -157,7 +153,8 @@ async def start(interaction: discord.Interaction):
     cl = ""
     wl = ""
     tries = 9
-    usingView = True
+    userSettings = getSettings(interaction.user.id)
+    usingView = userSettings["hangman_buttons"]
     embed = discord.Embed(title = interaction.user.name + "'s hangman game")
     print(word)
     if interaction.user not in authors:
@@ -165,7 +162,7 @@ async def start(interaction: discord.Interaction):
     else:
         authors[interaction.user].append(interaction.channel)
     await interaction.response.send_message("Starting hangman game... type \"quit\" anytime to quit.")
-    hasAccount = userHasAccount(str(interaction.user.id))
+    hasAccount = userHasAccount(interaction.user.id)
     if not hasAccount:
         await interaction.edit_original_response(content = "You don't have an account yet! In order to play hangman, you need to create an account using `/create-account`")
         authors.pop(interaction.user)
@@ -191,7 +188,7 @@ async def start(interaction: discord.Interaction):
         try:
             if not usingView:
                 try:
-                    guess = await client.wait_for("message", timeout = 60.0, check=check)
+                    guess = await bot.wait_for("message", timeout = 60.0, check=check)
                 except asyncio.TimeoutError:
                     await interaction.edit_original_response(content = "The game has timed out. Please start a new game with `/start` .", attachments = [], embed = None)
                     break
@@ -221,7 +218,7 @@ async def start(interaction: discord.Interaction):
             elif str_guess == "hint":
                 await interaction.edit_original_response(content = ("Please give me a moment"), attachments = [], embed = None)
                 try:
-                    changeWorked = changeItem(interaction.user, "hints", -1)
+                    changeWorked = changeItem(interaction.user.id, "hints", -1)
                     if not changeWorked:
                         embed.clear_fields()
                         embed.add_field(name = "Hint unsuccessful", value = "You don't have any hints! They cost 5 coins each! You can buy hints using `/buy hint [amount]`!")
@@ -237,7 +234,7 @@ async def start(interaction: discord.Interaction):
                     print(e)
             elif str_guess == "save":
                 await interaction.edit_original_response(content = ("Please give me a moment"), attachments = [], embed = None)
-                changeWorked = changeItem(interaction.user, "saves", -1)
+                changeWorked = changeItem(interaction.user.id, "saves", -1)
                 if not changeWorked:
                     embed.clear_fields()
                     embed.add_field(name = "Save Unsuccessful", value = "You don\'t have any saves! You earn saves by voting for our bot with `/vote`, or winning giveaways in https://discord.gg/CRGE5nF !")
@@ -325,12 +322,15 @@ async def start(interaction: discord.Interaction):
             if "_" in cl_txt and tries != 0:
                 embed.set_footer(text = "Please enter your next guess. (or \"hint\"/\"save\"/\"quit\")")
             if usingView:
-                view = Hangman(interaction.user)
-                await interaction.edit_original_response(content = "", attachments = [file], embed=embed, view=view)
+                if "_" not in cl_txt or tries == 0:
+                    await interaction.edit_original_response(content = "", attachments = [file], embed=embed, view=None)
+                else:
+                    view = Hangman(interaction.user)
+                    await interaction.edit_original_response(content = "", attachments = [file], embed=embed, view=view)
             else:
                 await interaction.edit_original_response(content = "", attachments = [file], embed=embed)
             if "_" not in cl_txt:
-                changeItem(interaction.user, "coins", 7)
+                changeItem(interaction.user.id, "coins", 7)
                 break
             elif tries == 0:
                 break
@@ -351,7 +351,7 @@ async def tictactoe(interaction: discord.Interaction, opponent: discord.User, be
     if bet <= 0:
         return await interaction.response.send_message("Enter a bet greater than 0!")
     if opponent.bot:
-        return await interaction.response.send_message("Ainnoway u want to play with a bot lol")
+        return await interaction.response.send_message("No way you want to play with a bot lol")
     if interaction.user == opponent:
         return await interaction.response.send_message("Bruh, make some friends. You can't play with yourself!")
     if not userHasAccount(interaction.user.id):
@@ -359,10 +359,25 @@ async def tictactoe(interaction: discord.Interaction, opponent: discord.User, be
     if not userHasAccount(opponent.id):
         return await interaction.response.send_message("The opponent you mentioned doesn't have an account yet!")
 
-    user1Balance = int(getItems(interaction.user)[0])
+    user1Settings = getSettings(interaction.user.id)
+    user2Settings = getSettings(opponent.id)
+    if not user1Settings["ticTacToe"]:
+        return await interaction.response.send_message("You do not have tic tac toe enabled in your user settings! Enable it using `/settings`!")
+    if not user2Settings["ticTacToe"]:
+        return await interaction.response.send_message("Your opponent does not have tic tac toe enabled in their settings! (`/settings`)")
+    if user1Settings["minTicTacToe"] != None and bet < user1Settings["minTicTacToe"]:
+        return await interaction.response.send_message(f"You cannot bet below your minimum bet: {user1Settings['minTicTacToe']} coins. Configure this using `/settings`!")
+    if user2Settings["minTicTacToe"] != None and bet < user2Settings["minTicTacToe"]:
+        return await interaction.response.send_message(f"Your bet is below your opponent's minimum bet amount: {user2Settings['minTicTacToe']} coins. (`/settings`)!")
+    if user1Settings["maxTicTacToe"] != None and bet > user1Settings["maxTicTacToe"]:
+        return await interaction.response.send_message(f"You cannot bet above your maximum bet: {user1Settings['maxTicTacToe']} coins. Configure this using `/settings`!")
+    if user2Settings["maxTicTacToe"] != None and bet > user2Settings["maxTicTacToe"]:
+        return await interaction.response.send_message(f"Your bet is above your opponent's maximum bet amount: {user2Settings['maxTicTacToe']} coins. (`/settings`)!")
+    
+    user1Balance = int(getItems(interaction.user.id)[0])
     if user1Balance < bet:
         return await interaction.response.send_message(content="You don't have that many coins! Please enter a bet that you can afford.")
-    user2Balance = int(getItems(opponent)[0])
+    user2Balance = int(getItems(opponent.id)[0])
     if user2Balance < bet:
         return await interaction.response.send_message(content="Your opponent doesn't have that many coins! Enter a smaller bet or a richer opponent.")
 
@@ -378,16 +393,16 @@ async def tictactoe(interaction: discord.Interaction, opponent: discord.User, be
     await view.wait()
     if view.winner is None and not view.tie:
         view.disableAll()
-        changeItem(view.not_turn, "coins", bet)
-        changeItem(view.turn, "coins", -1 * bet)
+        changeItem(view.not_turn.id, "coins", bet)
+        changeItem(view.turn.id, "coins", -1 * bet)
         return await interaction.edit_original_response(content = interaction.user.mention + " vs " + opponent.mention + ": Tic Tac Toe\n\nThe game has timed out, so " + view.not_turn.mention + " automatically won!\n" + view.not_turn.mention + " won " + str(bet) + " coins, and " + view.turn.mention + " lost " + str(bet) + " coins!", view=view)
     await interaction.edit_original_response(content = view.not_turn.mention + " won!\n" + view.winner.mention + " won " + str(bet) + " coins, and " + view.loser.mention + " lost " + str(bet) + " coins!", view=view)
-    changeItem(view.winner, "coins", bet)
-    changeItem(view.loser, "coins", -1 * bet)
+    changeItem(view.winner.id, "coins", bet)
+    changeItem(view.loser.id, "coins", -1 * bet)
         
 
 @tree.command(description = "Brief overview of the commands and other information")
-async def help(interaction):
+async def help(interaction: discord.Interaction):
     hex_number = random.randint(0,16777215)
     helpEmbed = discord.Embed(title="Help", color=hex_number)
     helpEmbed.add_field(name="Commands", value="`/create-account` - Create an account in the bot so that you can play hangman! \n `/policy` - View our privacy policy \n `/delete-account` - Opt out of the privacy policy and delete your account :( \n `/start` - Start AWESOME hangman game ! \n `/bal <member>` - Check how much coins you or another member has! \n `/shop` - Check out what you can buy with your coins!\n `/buy <item> <amount(Optional)>` - buy an item from the `/shop`! If you dont add an amount, it defaults to 1.\n `/servers` - See how many servers the bot is in!\n `/pay <@user> <amount of coins>` - Pay someone some coins!\n `/ping`, `/help` - It\'s kinds obvious what these are...")
@@ -398,56 +413,95 @@ async def help(interaction):
     helpEmbed.timestamp = datetime.datetime.now()
     helpEmbed.set_footer(text="Thank you so much!")
     await interaction.response.send_message("https://discord.gg/CRGE5nF", embed=helpEmbed)
+    
+@tree.command(description = "Configure your user settings")
+async def settings(interaction: discord.Interaction):
+    userSettings = getSettings(interaction.user.id)
+    if not userSettings:
+        return await interaction.response.send_message("You don't have an account yet! Create one using `/create-account`")
+    hex_number = random.randint(0,16777215)
+    tttenabled = False
+    embed = discord.Embed(title= interaction.user.name + "'s User Settings", color=hex_number, description = "These are your current user settings. You can change them using the dropdown menu.")
+    embed.add_field(name = "Hangman Buttons", value = "Using buttons instead of the text based system when playing a hangman game\n\nCurrent Value: `" + str(userSettings["hangman_buttons"]) + "`")
+    embed.add_field(name = "Tic Tac Toe", value = "Allows you to play tic tac toe using `/tictactoe` against other users that also have this settings enabled\n\nCurrent Value: `" + str(userSettings["ticTacToe"]) + "`")
+    if userSettings["ticTacToe"]:
+        tttenabled = True
+        embed.add_field(name = "Minimum Tic Tac Toe bet", value = "Sets the minimum amount someone can bet against you in Tic Tac Toe\n\nCurrent Value: `" + str(userSettings["minTicTacToe"]) + "`")
+        embed.add_field(name = "Maximum Tic Tac Toe bet", value = "Sets the maximum amount someone can bet against you in Tic Tac Toe\n\nCurrent Value: `" + str(userSettings["maxTicTacToe"]) + "`")
+    view = UserSettings(interaction.user, tttenabled, getSettings(interaction.user.id))
+    await interaction.response.send_message(embed=embed, view=view)
+    while True:
+        timed_out = await view.wait()
+        if timed_out:
+            view.disableAll()
+            return await interaction.edit_original_response(content = "Interaction timed out...", view=view)
+        if view.quited:
+            return
+        if view.changeAllowed:
+            changeSetting(interaction.user.id, view.chosen, view.newValue)
+            tttenabled = False
+            userSettings = getSettings(interaction.user.id)
+            embed.clear_fields()
+            embed.add_field(name = "Hangman Buttons", value = "Using buttons instead of the text based system when playing a hangman game\n\nCurrent Value: `" + str(userSettings["hangman_buttons"]) + "`")
+            embed.add_field(name = "Tic Tac Toe", value = "Allows you to play tic tac toe using `/tictactoe` against other users that also have this settings enabled\n\nCurrent Value: `" + str(userSettings["ticTacToe"]) + "`")
+            if userSettings["ticTacToe"]:
+                tttenabled = True
+                embed.add_field(name = "Minimum Tic Tac Toe bet", value = "Sets the minimum amount someone can bet against you in Tic Tac Toe\n\nCurrent Value: `" + str(userSettings["minTicTacToe"]) + "`")
+                embed.add_field(name = "Maximum Tic Tac Toe bet", value = "Sets the maximum amount someone can bet against you in Tic Tac Toe\n\nCurrent Value: `" + str(userSettings["maxTicTacToe"]) + "`")
+            view = UserSettings(interaction.user, tttenabled, getSettings(interaction.user.id))
+            await interaction.edit_original_response(embed=embed, view=view)
+            
+
 @tree.command(description = "The ping of the bot")
 async def ping(interaction: discord.Interaction):
-    # await interaction.response.send_message("Pong! `" + str(client.latency * 1000) + "ms`")
+    # await interaction.response.send_message("Pong! `" + str(bot.latency * 1000) + "ms`")
     interaction_creation = interaction.created_at.replace(tzinfo=None).timestamp() * 1000
     received_time = datetime.datetime.utcnow().timestamp() * 1000
-    await interaction.response.send_message(f"API Latency: `{round(client.latency * 1000, 2)}ms`\nPing: `{round(received_time - interaction_creation, 2)}ms`")
+    await interaction.response.send_message(f"API Latency: `{round(bot.latency * 1000, 2)}ms`\nPing: `{round(received_time - interaction_creation, 2)}ms`")
     respond_time = datetime.datetime.utcnow().timestamp() * 1000
-    await interaction.edit_original_response(content=f"API Latency: `{round(client.latency * 1000, 2)}ms`\nPing: `{round(received_time - interaction_creation, 2)}ms`\nLatency: `{round(respond_time - interaction_creation, 2)}ms`")
+    await interaction.edit_original_response(content=f"API Latency: `{round(bot.latency * 1000, 2)}ms`\nPing: `{round(received_time - interaction_creation, 2)}ms`\nLatency: `{round(respond_time - interaction_creation, 2)}ms`")
 
 @tree.command(description = "Check how many coins you have!")
-async def bal(interaction, member: discord.Member = None):
+async def bal(interaction: discord.Interaction, member: discord.Member = None):
     await interaction.response.send_message("Counting money...")
     if member != None:
-        items = getItems(member)
+        items = getItems(member.id)
         if(len(items) > 0):
             await interaction.edit_original_response(content = (member.mention + " has " + items[0] + " coins! \n They also have " + items[1] + " hints and " + items[2] + " saves!"))
         else:
             await interaction.edit_original_response(content = "The specified user doesn't have an account! Tell them to create one using `/create-account`.")
     else:
-        items = getItems(interaction.user)
+        items = getItems(interaction.user.id)
         if(len(items) > 0):
             await interaction.edit_original_response(content = (interaction.user.mention + ", you have " + items[0] + " coins! \n You also have " + items[1] + " hints and " + items[2] + " saves!"))
         else:
             await interaction.edit_original_response(content = "You don't have an account yet! Create one using `/create-account`!")
-@client.command(name="add-coins", description = "Owner only command")
-async def add_coins(interaction, member: discord.Member, amount: int):
-    if interaction.author.id != 697628625150803989 and interaction.author.id != 713467569725767841 and interaction.author.id != 692195032857444412:
-        return await interaction.response.send_message("You must own the bot to use this command!")
-    changeWorked = changeItem(member, "coins", amount)
+@bot.command(name="add-coins", description = "Owner only command")
+async def add_coins(ctx: commands.Context, member: discord.Member, amount: int):
+    if ctx.author.id != 697628625150803989 and ctx.author.id != 713467569725767841 and ctx.author.id != 692195032857444412:
+        return await ctx.send("You must own the bot to use this command!")
+    changeWorked = changeItem(member.id, "coins", amount)
     if not changeWorked:
-        await interaction.response.send_message("They have no account!")
-    await interaction.response.send_message("Success!")
-@client.command(name = "remove-coins", description = "Owner only command")
-async def remove_coins(interaction, member: discord.Member, amount: int):
-    if interaction.author.id != 697628625150803989 and interaction.author.id != 713467569725767841 and interaction.author.id != 692195032857444412:
-        return await interaction.response.send_message("You must own the bot to use this command!")
-    transactionWorked = changeItem(member, "coins", -1 * amount)
-    if not transactionWorked:
-        await interaction.response.send_message("They have no account!")
-    await interaction.response.send_message("Success!")
+        await ctx.send("They have no account!")
+    await ctx.send("Success!")
+@bot.command(name = "remove-coins", description = "Owner only command")
+async def remove_coins(ctx: commands.Context, member: discord.Member, amount: int):
+    if ctx.author.id != 697628625150803989 and ctx.author.id != 713467569725767841 and ctx.author.id != 692195032857444412:
+        return await ctx.send("You must own the bot to use this command!")
+    changeWorked = changeItem(member.id, "coins", -1 * amount)
+    if not changeWorked:
+        await ctx.send("They have no account!")
+    await ctx.send("Success!")
 @tree.command(description = "Buy an item from the shop")
 async def buy(interaction, item: str, amount : int = 1):
     if item == "hint":
         await interaction.response.send_message("Giving you hint(s)...")
         try:
-            transactionWorked = changeItem(interaction.user, "coins", -5 * amount)
+            transactionWorked = changeItem(interaction.user.id, "coins", -5 * amount)
             if not transactionWorked:
                 await interaction.edit_original_response(content = "You don't have that many coins (Hints cost 5 coins each)! Get coins by winning hangman games `/start`! (If you haven't created an account, create one with `/create-account`).")
                 return
-            changeItem(interaction.user, "hints", amount)
+            changeItem(interaction.user.id, "hints", amount)
             await interaction.edit_original_response(content = "Success! You now have " + str(amount) + " more hint(s).")
         except Exception as e:
             print(e)
@@ -503,13 +557,8 @@ async def vote(interaction):
     await interaction.response.send_message(embed=voteEmbed)
 @tree.command(description = "The bot's server count")
 async def servers(interaction):
-    servers = list(client.guilds)
+    servers = list(bot.guilds)
     await interaction.response.send_message(f"I am currently in {str(len(servers))} servers!")
-@tree.command(description = "Owner only command")
-@app_commands.check(checkOwner)
-async def load(interaction):
-    client.load_extension("topGG")
-    await interaction.response.send_message("Done")
 @tree.command(description = "Owner only command")
 @app_commands.check(checkOwner)
 async def post(interaction):
@@ -525,7 +574,7 @@ async def post(interaction):
                 param_name = "guilds"
                 auth = os.environ["discordbotlist.com-token"]
                 url = "https://discordbotlist.com/api/v1/bots/748670819156099073/stats"
-            body = {param_name: len(client.guilds)}
+            body = {param_name: len(bot.guilds)}
             headers = {"Authorization": auth}
             r = requests.post(url, data=body, headers=headers)
             try:
@@ -538,14 +587,14 @@ async def post(interaction):
 @tree.command(description = "If you are rich and you're friend is poor, you can give them coins")
 async def pay(interaction, member: discord.Member, amount: int):
     await interaction.response.send_message("Paying money...")
-    transactionWorked = changeItem(interaction.user, "coins", -1 * amount)
+    transactionWorked = changeItem(interaction.user.id, "coins", -1 * amount)
     if not transactionWorked:
         await interaction.edit_original_response(content = "You either don't have that many coins, or you don't have an account. Create an account using `/create-account.`")
         return
-    transactionWorked = changeItem(member, "coins", amount)
+    transactionWorked = changeItem(member.id, "coins", amount)
     if not transactionWorked:
         await interaction.edit_original_response(content = "The specified user does not have an account yet. Tell them to create one using `/createaccount`.!")
-        changeItem(interaction.user, "coins", amount)
+        changeItem(interaction.user.id, "coins", amount)
         return   
     await interaction.edit_original_response(content = f"Successfully gave {member.mention} {amount} coins!")
 @tree.command(description = "See the richest people in the bot!")
@@ -555,7 +604,7 @@ async def rich(interaction):
     await interaction.response.send_message("Getting richest users...")
     richUsers = getRich()
     for user_id in richUsers: 
-            useradd = await client.fetch_user(user_id)
+            useradd = await bot.fetch_user(user_id)
             leader = "%d: %s" % (list(richUsers.keys()).index(str(user_id)) + 1, useradd.name)
             embedtext = "%s coins" % (richUsers[user_id])
             richEmbed.add_field(name=leader, value=embedtext)
@@ -565,4 +614,4 @@ async def rich(interaction):
 async def invite(interaction):
     await interaction.response.send_message("Enjoying the bot? Invite me to your own server: https://dsc.gg/hangman !")
         
-client.run(os.environ["token"])
+bot.run(os.environ["token"])
