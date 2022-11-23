@@ -77,7 +77,7 @@ async def create_account(interaction: discord.Interaction):
     if hasAccount:
         return await interaction.edit_original_response(content = "You already have an account!")
     view = ConfirmPrompt(interaction.user)
-    await interaction.edit_original_response(content = "Before creating your hangman account, please read our privacy policy and our terms of service at https://github.com/aaditisawesome/aaditshangmanbot/blob/main/README.md. If you agree to the policy and want to proceed with your account creation, use the `/confirm-create` command.", view=view)
+    await interaction.edit_original_response(content = "Before creating your hangman account, please read our privacy policy and our terms of service at https://github.com/aaditisawesome/aaditshangmanbot/blob/main/README.md. If you agree to the policy and want to proceed with your account creation, click the `Confirm` button below.", view=view)
     await view.wait()
     if view.confirmed == None:
         return await interaction.edit_original_response(content = "Interaction has timed out...", view=None)
@@ -485,7 +485,7 @@ async def add_coins(ctx: commands.Context, member: discord.Member, amount: int):
         return await ctx.send("You must own the bot to use this command!")
     changeWorked = changeItem(member.id, "coins", amount)
     if not changeWorked:
-        await ctx.send("They have no account!")
+        return await ctx.send("They have no account!")
     await ctx.send("Success!")
 @bot.command(name = "remove-coins", description = "Owner only command")
 async def remove_coins(ctx: commands.Context, member: discord.Member, amount: int):
@@ -493,7 +493,7 @@ async def remove_coins(ctx: commands.Context, member: discord.Member, amount: in
         return await ctx.send("You must own the bot to use this command!")
     changeWorked = changeItem(member.id, "coins", -1 * amount)
     if not changeWorked:
-        await ctx.send("They have no account!")
+        return await ctx.send("They have no account!")
     await ctx.send("Success!")
 @tree.command(description = "Buy an item from the shop")
 async def buy(interaction, item: str, amount : int = 1):

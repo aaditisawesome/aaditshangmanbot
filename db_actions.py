@@ -41,6 +41,7 @@ def deleteUser(userId: int):
     if not userHasAccount(userId):
         return False
     currencyCol.delete_one({"_id": str(userId)})
+    settingsCol.delete_one({"_id": str(userId)})
     return True
 
 def getItems(userId: int):

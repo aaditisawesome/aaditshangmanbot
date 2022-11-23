@@ -1,6 +1,5 @@
 import discord
 import datetime
-import random
 
 # Tic Tac Toe
 class TicTacToeButton(discord.ui.Button):
