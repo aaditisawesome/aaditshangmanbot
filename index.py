@@ -570,11 +570,11 @@ async def post(interaction):
         for web in webs:
             if web == "top.gg":
                 param_name = "server_count"
-                auth = os.environ["top.gg-token"]
+                auth = os.environ["topgg_token"]
                 url = "https://top.gg/api/bots/748670819156099073/stats"
             elif web == "discordbotlist.com":
                 param_name = "guilds"
-                auth = os.environ["discordbotlist.com-token"]
+                auth = os.environ["discordbotlistcom_token"]
                 url = "https://discordbotlist.com/api/v1/bots/748670819156099073/stats"
             body = {param_name: len(bot.guilds)}
             headers = {"Authorization": auth}
