@@ -244,7 +244,7 @@ class UserSettingsModal(discord.ui.Modal):
                 return await interaction.response.send_message("The number that you entered is already set for that setting!", ephemeral = True)
             if self.newValue != 0:
                 if self.modalType == "maxTicTacToe":
-                    if self.otherValue >= self.newValue:
+                    if self.otherValue != 0 and self.otherValue > self.newValue:
                         self.changeAllowed = False
                         return await interaction.response.send_message("You need to enter a value that is greater than your current minimum tic tac toe bet!", ephemeral = True)
                     elif self.newValue <= 10:
@@ -252,7 +252,7 @@ class UserSettingsModal(discord.ui.Modal):
                     else:
                         await interaction.response.send_message("We have changed your maximum tic tac toe bet to " + str(self.newValue) + "!", ephemeral = True)
                 else:
-                    if self.otherValue <= self.newValue:
+                    if self.otherValue != 0 and self.otherValue < self.newValue:
                         self.changeAllowed = False
                         return await interaction.response.send_message("You need to enter a value that is less than your current maximum tic tac toe bet!", ephemeral = True)
                     if self.newValue >= 40:
@@ -324,10 +324,12 @@ class UserSettingsDropdown(discord.ui.Select):
             if default is None:
                 default = 0
             if view.chosen == "minTicTacToe":
-                otherValue = "maxTicTacToe"
+                otherValue = self.currentSettings["maxTicTacToe"]
             else:
-                otherValue = "minTicTacToe"
-            view.add_item(UserSettingsModalButton(label="Change Limit", style = discord.ButtonStyle.grey, disabled = False, row=1, modalType = view.chosen, default=str(default), otherValue=self.currentSettings[otherValue]))
+                otherValue = self.currentSettings["maxTicTacToe"]
+            if otherValue == None:
+                otherValue = 0
+            view.add_item(UserSettingsModalButton(label="Change Limit", style = discord.ButtonStyle.grey, disabled = False, row=1, modalType = view.chosen, default=str(default), otherValue=otherValue))
             view.add_item(UserSettingsButton(label="Quit", style = discord.ButtonStyle.blurple, disabled = False, row=1))
         for option in self.options:
             if option.value == view.chosen:
