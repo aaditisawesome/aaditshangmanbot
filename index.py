@@ -404,15 +404,18 @@ async def tictactoe(interaction: discord.Interaction, opponent: discord.User, be
 @tree.command(description = "Brief overview of the commands and other information")
 async def help(interaction: discord.Interaction):
     hex_number = random.randint(0,16777215)
-    helpEmbed = discord.Embed(title="Help", color=hex_number)
-    helpEmbed.add_field(name="Commands", value="`/create-account` - Create an account in the bot so that you can play hangman! \n `/policy` - View our privacy policy \n `/delete-account` - Opt out of the privacy policy and delete your account :( \n `/start` - Start AWESOME hangman game ! \n `/bal <member>` - Check how much coins you or another member has! \n `/shop` - Check out what you can buy with your coins!\n `/buy <item> <amount(Optional)>` - buy an item from the `/shop`! If you dont add an amount, it defaults to 1.\n `/servers` - See how many servers the bot is in!\n `/pay <@user> <amount of coins>` - Pay someone some coins!\n `/ping`, `/help` - It\'s kinds obvious what these are...")
-    helpEmbed.add_field(name="Playing Aadit's Hangman", value="- The hangman web app I am developing: https://aadits-hangman.herokuapp.com. \n- Installing my python package from PyPI: https://pypi.org/project/AaditsHangman/. \n- Inviting me to your server: https://dsc.gg/hangman/, and creating an account using `/create-account`.")
-    helpEmbed.add_field(name="Improving Aadit's Hangman", value="You can improve our game by contacting me (https://aadits-hangman.herokuapp.com/contact) or by giving us anonymous feedback at https://aadits-hangman.herokuapp.com/feedback")
-    helpEmbed.add_field(name="Still confused?", value="Join our [Support Server](https://discord.gg/CRGE5nF) or watch our [video!](https://youtu.be/8DFSjOVh1QA)")
-    helpEmbed.add_field(name="Enjoying the bot?", value="If you want to add Aadit's Hangman Bot to your own server so your members can play hangman, click [HERE!](https://discord.com/oauth2/authorize?client_id=748670819156099073&scope=bot&permissions=3072) Also, please see (`/vote`) if you want to get good prizes!")
-    helpEmbed.timestamp = datetime.datetime.now()
-    helpEmbed.set_footer(text="Thank you so much!")
-    await interaction.response.send_message("https://discord.gg/CRGE5nF", embed=helpEmbed)
+    embed = discord.Embed(color=hex_number)        
+    embed.title = "Page 1 - How to play hangman using Aadit's Hangman"
+    embed.description = "How can you play hangman using what we have created?"
+    embed.add_field(name="Using the bot (me)!", value="Simply use the </start:1033466791495745577> command after creating an account using </create-account:1033637464356687943>! Invite link: https://dsc.gg/hangman")
+    embed.add_field(name="Using the web app!", value="Visit https://aadits-hangman.herokuapp.com and log in with discord (You don't have to, but then you just won't earn coins)!")
+    embed.add_field(name="Install Python Package!", value="Install the python package from https://pypi.org/project/AaditsHangman/ ! (You will not earn coins)")
+    embed.add_field(name="Support Server", value = "https://discord.gg/CRGE5nF")
+    view = Help(hex_number, interaction.user)
+    await interaction.response.send_message(embed=embed, view=view)
+    timed_out = await view.wait()
+    if timed_out:
+        await interaction.edit_original_response(content="Interaction timed out...", view=None)
     
 @tree.command(description = "Configure your user settings")
 async def settings(interaction: discord.Interaction):
