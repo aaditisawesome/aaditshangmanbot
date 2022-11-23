@@ -451,9 +451,8 @@ async def settings(interaction: discord.Interaction):
                 tttenabled = True
                 embed.add_field(name = "Minimum Tic Tac Toe bet", value = "Sets the minimum amount someone can bet against you in Tic Tac Toe\n\nCurrent Value: `" + str(userSettings["minTicTacToe"]) + "`")
                 embed.add_field(name = "Maximum Tic Tac Toe bet", value = "Sets the maximum amount someone can bet against you in Tic Tac Toe\n\nCurrent Value: `" + str(userSettings["maxTicTacToe"]) + "`")
-            view = UserSettings(interaction.user, tttenabled, getSettings(interaction.user.id))
-            await interaction.edit_original_response(embed=embed, view=view)
-            
+        view = UserSettings(interaction.user, tttenabled, getSettings(interaction.user.id))
+        await interaction.edit_original_response(embed=embed, view=view)
 
 @tree.command(description = "The ping of the bot")
 async def ping(interaction: discord.Interaction):
