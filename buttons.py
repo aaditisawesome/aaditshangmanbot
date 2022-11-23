@@ -218,7 +218,7 @@ class Hangman(discord.ui.View):
 # User Settings
 class UserSettingsModal(discord.ui.Modal):
     bet_input = discord.ui.TextInput(label = " ")
-    def __init__(self, modalType, default, otherValue):
+    def __init__(self, modalType, default, otherValue, created_at):
         self.modalType = modalType
         if self.modalType == "minTicTacToe":
             title = "Configure Minimum Tic Tac Toe Bet"
@@ -233,7 +233,10 @@ class UserSettingsModal(discord.ui.Modal):
         self.newValue = None
         self.changeAllowed = None
         self.otherValue = otherValue
+        self.created_at = created_at
     async def on_submit(self, interaction: discord.Interaction):
+        if datetime.datetime.utcnow().timestamp() - self.created_at >= 60:
+            return await interaction.response.send_message("Sorry, the interaction has timed out. Please run the `/settings` command again.", ephemeral=True)
         try:
             self.newValue = int(self.bet_input.value)
             if self.newValue < 0:
@@ -273,13 +276,14 @@ class UserSettingsModal(discord.ui.Modal):
         self.stop()
 
 class UserSettingsModalButton(discord.ui.Button):
-    def __init__(self, label, style, disabled, row, modalType, default, otherValue):
+    def __init__(self, label, style, disabled, row, modalType, default, otherValue, created_at):
         super().__init__(label=label, style=style, disabled=disabled, row=row)
         self.modalType = modalType
         self.default = default
         self.otherValue = otherValue
+        self.created_at = created_at
     async def callback(self, interaction: discord.Interaction):
-        modal = UserSettingsModal(self.modalType, self.default, self.otherValue)
+        modal = UserSettingsModal(self.modalType, self.default, self.otherValue, self.created_at)
         await interaction.response.send_modal(modal)
         await modal.wait()
         view: UserSettings = self.view
@@ -311,6 +315,7 @@ class UserSettingsDropdown(discord.ui.Select):
     def __init__(self, options, currentSettings):
         super().__init__(options=options, placeholder="Select Setting")
         self.currentSettings = currentSettings
+        self.created_at = datetime.datetime.utcnow().timestamp()
     async def callback(self, interaction: discord.Interaction):
         view: UserSettings = self.view
         view.clearButtons()
@@ -329,7 +334,7 @@ class UserSettingsDropdown(discord.ui.Select):
                 otherValue = self.currentSettings["maxTicTacToe"]
             if otherValue == None:
                 otherValue = 0
-            view.add_item(UserSettingsModalButton(label="Change Limit", style = discord.ButtonStyle.grey, disabled = False, row=1, modalType = view.chosen, default=str(default), otherValue=otherValue))
+            view.add_item(UserSettingsModalButton(label="Change Limit", style = discord.ButtonStyle.grey, disabled = False, row=1, modalType = view.chosen, default=str(default), otherValue=otherValue, created_at=self.created_at))
             view.add_item(UserSettingsButton(label="Quit", style = discord.ButtonStyle.blurple, disabled = False, row=1))
         for option in self.options:
             if option.value == view.chosen:
@@ -359,6 +364,7 @@ class UserSettings(discord.ui.View):
             await interaction.response.defer()
             return False
         return True
+        
     def disableAll(self):
         for item in self.children:
             if item.row == 1 and item.label != "Quit":
