@@ -467,5 +467,7 @@ class Help(discord.ui.View):
             embed.add_field(name="</rich:1033466791529291819>", value="See the richest ~~sweats~~ users in the bot! If you want to see your name on the leaderboard, then you need to grind a lot! But if you do, you get to flex on your friends!")
             embed.add_field(name="</servers:1033466791495745586>", value="See the server count of the bot!")
             embed.add_field(name="</ping:1033466791495745579>", value="See the response time of the bot!")
+            embed.add_field(name="</invite:1037581414016757851>", value="Invite the bot to your own server!")
+            embed.add_field(name="</vote:1033466791495745585>", value="Earn saves by voting for the bot on various bot lists!")
             embed.add_field(name="</help:1033466791495745578>", value="This")
     
