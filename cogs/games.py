@@ -47,7 +47,7 @@ class GamesCog(commands.Cog):
             value = value +  "\_  "
         embed.add_field(name = "Word:", value = value, inline = False)
         embed.add_field(name = "Wrong Tries Left:", value = tries)
-        file = discord.File(pic, filename=pic)
+        file = discord.File("hangman-pics/" + pic, filename=pic)
         embed.set_image(url=f"attachment://{pic}")
         embed.set_footer(text = "Please enter your next guess. (or \"hint\"/\"save\"/\"quit\")")
         if not usingView:
@@ -189,7 +189,7 @@ class GamesCog(commands.Cog):
                 embed.add_field(name = "Wrong tries left:", value = tries)
                 if tries > 9:
                     pic = "hangman-0.png"
-                file = discord.File(pic, filename=pic)
+                file = discord.File("hangman-pics/" + pic, filename=pic)
                 embed.set_image(url = f"attachment://{pic}")
                 if "_" in cl_txt and tries != 0:
                     embed.set_footer(text = "Please enter your next guess. (or \"hint\"/\"save\"/\"quit\")")
@@ -219,7 +219,7 @@ class GamesCog(commands.Cog):
             self.bot.authors.pop(interaction.user)
 
     @app_commands.command()
-    async def tictactoe(interaction: discord.Interaction, opponent: discord.User, bet: int):
+    async def tictactoe(self, interaction: discord.Interaction, opponent: discord.User, bet: int):
         if bet <= 0:
             return await interaction.response.send_message("Enter a bet greater than 0!")
         if opponent.bot:
