@@ -3,7 +3,10 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 from db_actions import *
-from buttons import *
+
+from views.hangman import *
+from views.tictactoe import *
+from views.confirmprompt import *
 
 # Commands which allow users to play games in the bot
 class GamesCog(commands.Cog):

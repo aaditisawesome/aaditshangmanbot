@@ -1,10 +1,9 @@
 import discord
 from discord.ext import commands
 from db_actions import *
-from buttons import *
 import requests
 
-# Owner only Command
+# Owner only Commands
 class OwnerCog(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot

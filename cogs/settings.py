@@ -2,8 +2,8 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 from db_actions import *
-from buttons import *
 import random
+from views.settings import *
 
 # Settings Command
 class SettingsCog(commands.Cog):
