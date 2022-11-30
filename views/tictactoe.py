@@ -1,5 +1,8 @@
 import discord
 
+# View for /tictactoe command
+
+# Implementation each of the 9 buttons in the tic tac toe game
 class TicTacToeButton(discord.ui.Button):
     def __init__(self, row: int, buttonNumber: int):
         super().__init__(style = discord.ButtonStyle.grey, disabled = False, label = "‎", row = row)
@@ -42,15 +45,18 @@ class TicTacToeButton(discord.ui.Button):
             await interaction.response.defer()
             view.stop()
 
+# View which contains the 9 buttons, each of them implemented in TicTacToeButton
 class TicTacToe(discord.ui.View):
     def __init__(self, user1: discord.User, user2: discord.User, interaction: discord.Interaction):
         super().__init__(timeout=60)
         self.buttonStatus = ["", "", "", 
                             "", "", "",
                             "", "", ""]
+        # States which user is X and which user is O
         self.userAssignments = {user1: "X", user2: "O"}
         row = 1
         buttonNumber = 0
+        # Adding 9 TicTacToeButtons to this view, with 3 in each row
         for a in range(3):
             for b in range(3):
                 self.add_item(TicTacToeButton(row, buttonNumber))
@@ -102,6 +108,7 @@ class TicTacToe(discord.ui.View):
         return None
 
     def checkTie(self):
+        # Checks if all of the values in self.buttonStatus contain either "X" or "O"
         for char in self.buttonStatus:
             if char == "":
                 return False

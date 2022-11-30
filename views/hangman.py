@@ -1,5 +1,8 @@
 import discord
 
+# Used for when the "Hangman Buttons" setting is enabled
+
+# The modal in which the user can input a letter
 class HangmanModal(discord.ui.Modal):
     guess_letter = discord.ui.TextInput(label="Guess Letter", placeholder="Your Guess", min_length=1, max_length=1)
     
@@ -20,7 +23,8 @@ class HangmanModal(discord.ui.Modal):
 
     async def on_error(self, interaction: discord.Interaction, error: Exception):
         print(error)
-        
+
+# View which contains the 4 buttons for the hangman game where one of the triggers a modal implemented in HangmanModal
 class Hangman(discord.ui.View):
     def __init__(self, user):
         super().__init__(timeout=60)

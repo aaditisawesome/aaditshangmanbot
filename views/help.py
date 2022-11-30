@@ -1,5 +1,6 @@
 import discord
 
+# Buttons for the help command and editing the embed based on the current page number
 class Help(discord.ui.View):
     def __init__(self, hex_number, user):
         super().__init__(timeout=60)
@@ -11,11 +12,14 @@ class Help(discord.ui.View):
             await interaction.response.defer()
             return False
         return True
+
+    # Children list order:
+    # [Double left button, left button, right button, Double right button]
     @discord.ui.button(emoji="\U000023ea", style=discord.ButtonStyle.blurple, disabled=True)
     async def doubleLeft(self, interaction: discord.Interaction, button: discord.ui.Button):
         self.current_page = 1
         button.disabled = True
-        self.children[1].disabled = True
+        self.children[1].disabled = True # 
         self.children[2].disabled = False
         self.children[3].disabled = False
         embed = discord.Embed(color=self.hex_number)        

@@ -1,6 +1,9 @@
 import discord
 import datetime
 
+# All the buttons and modals for the /settings command
+
+# Modal for configuring settings which require input 
 class UserSettingsModal(discord.ui.Modal):
     bet_input = discord.ui.TextInput(label = " ")
     def __init__(self, modalType, default, otherValue, created_at):
@@ -15,12 +18,12 @@ class UserSettingsModal(discord.ui.Modal):
             self.bet_input.label =  "Maximum Bet amount\n(0 for no maximum bet)"
         super().__init__(title=title)
         self.bet_input.default = default
-        self.newValue = None
+        self.newValue = None # Value inputted by user
         self.changeAllowed = None
-        self.otherValue = otherValue
+        self.otherValue = otherValue # The value of the other setting (i.e. if selected setting is Minimum Tic Tac Toe bet, this will be the maximum bet for the user)
         self.created_at = created_at
     async def on_submit(self, interaction: discord.Interaction):
-        if datetime.datetime.utcnow().timestamp() - self.created_at >= 60:
+        if datetime.datetime.utcnow().timestamp() - self.created_at >= 60: # Checks if interaction is timed out
             return await interaction.response.send_message("Sorry, the interaction has timed out. Please run the `/settings` command again.", ephemeral=True)
         try:
             self.newValue = int(self.bet_input.value)
@@ -60,6 +63,7 @@ class UserSettingsModal(discord.ui.Modal):
             self.changeAllowed = False
         self.stop()
 
+# Button which triggers the modal
 class UserSettingsModalButton(discord.ui.Button):
     def __init__(self, label, style, disabled, row, modalType, default, otherValue, created_at):
         super().__init__(label=label, style=style, disabled=disabled, row=row)
@@ -76,6 +80,7 @@ class UserSettingsModalButton(discord.ui.Button):
         view.changeAllowed = modal.changeAllowed
         view.stop()
 
+# Buttons for enabling/disabling a setting (which don't require input) and for quitting the interaction
 class UserSettingsButton(discord.ui.Button):
     def __init__(self, label, style, disabled, row):
         super().__init__(label=label, style=style, disabled=disabled, row=row)
@@ -87,7 +92,7 @@ class UserSettingsButton(discord.ui.Button):
         elif self.label == "Disable":
             view.newValue = False
             await interaction.response.send_message("That setting has been disabled!", ephemeral=True)
-        else:
+        else: # Quit button
             await interaction.response.edit_message(view=None)
             view.quited = True
             view.disableAll()
@@ -96,6 +101,7 @@ class UserSettingsButton(discord.ui.Button):
         view.changeAllowed = True
         view.stop()
 
+# Dropdown which displays all the options for selecting the setting, and creates the buttons according to what the user selects
 class UserSettingsDropdown(discord.ui.Select):
     def __init__(self, options, currentSettings):
         super().__init__(options=options, placeholder="Select Setting")
@@ -127,6 +133,7 @@ class UserSettingsDropdown(discord.ui.Select):
                 break
         await interaction.response.edit_message(view=view)
 
+# The main view for the interaction, which initially contains only the dropdown and the quit button.
 class UserSettings(discord.ui.View):
     def __init__(self, user, tttenabled: bool, currentSettings):
         super().__init__(timeout=60)

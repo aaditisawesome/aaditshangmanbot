@@ -1,5 +1,6 @@
 import discord
 
+# Used for any commands which require the user to confirm or deny anything
 class ConfirmPrompt(discord.ui.View):
     def __init__(self, user):
         super().__init__(timeout=60)
