@@ -7,15 +7,15 @@ class HangmanBot(commands.Bot):
     def __init__(self):
         intents = discord.Intents.default();
         intents.message_content = True
-        super().__init__(command_prefix="$", intents=intents)
+        super().__init__(command_prefix="$", intents=intents, activity=discord.Activity(type=discord.ActivityType.watching, name="you"))
         self.authors = {}
         self.rw = RandomWords()
         self.index = 0
 
-    @tasks.loop(seconds=15)
+    @tasks.loop(seconds=60)
     async def change_status(self):
         statuses = [
-            "https://aadits-hangman.herokuapp.com",
+            "http://aadits-hangman.tk",
             f"{len(self.guilds)} server(s)",
             "/help || /start",
             "Youtube",
@@ -29,6 +29,10 @@ class HangmanBot(commands.Bot):
         self.index +=1
         if self.index == len(statuses):
             self.index = 0
+
+    @change_status.before_loop
+    async def before_change_status(self):
+        await self.wait_until_ready()
 
     async def setup_hook(self):
         await self.load_extension("cogs.currency")
