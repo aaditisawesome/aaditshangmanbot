@@ -22,27 +22,33 @@ class GamesCog(commands.Cog):
             if interaction.channel in self.bot.authors[interaction.user]:
                 await interaction.response.send_message("You already have a running hangman game in this channel! Type `quit` to end it.", ephemeral=True)
                 return
-        def check(m):
-            return m.author == interaction.user and m.channel == interaction.channel
-        word = self.bot.rw.random_word()
-        cl = ""
-        wl = ""
-        tries = 9
-        userSettings = getSettings(interaction.user.id)
-        usingView = userSettings["hangman_buttons"]
-        embed = discord.Embed(title = interaction.user.name + "'s hangman game")
-        print(word)
+
+        await interaction.response.send_message("Starting hangman game... type \"quit\" anytime to quit.")
+
+        hasAccount = userHasAccount(interaction.user.id)
+        if not hasAccount:
+            await interaction.edit_original_response(content = "You don't have an account yet! In order to play hangman, you need to create an account using `/create-account`")
+            return
+
         if interaction.user not in self.bot.authors:
             self.bot.authors[interaction.user] = [interaction.channel]
         else:
             self.bot.authors[interaction.user].append(interaction.channel)
-        await interaction.response.send_message("Starting hangman game... type \"quit\" anytime to quit.")
-        hasAccount = userHasAccount(interaction.user.id)
-        if not hasAccount:
-            await interaction.edit_original_response(content = "You don't have an account yet! In order to play hangman, you need to create an account using `/create-account`")
-            self.bot.authors.pop(interaction.user)
-            return
+
+        def check(m):
+            return m.author == interaction.user and m.channel == interaction.channel
+
+
+        cl = ""
+        wl = ""
+        tries = 9
         pic = "hangman-0.png"
+        word = self.bot.rw.random_word()
+        userSettings = getSettings(interaction.user.id)
+        usingView = userSettings["hangman_buttons"]
+        embed = discord.Embed(title = interaction.user.name + "'s hangman game")
+        print(word)
+
         embed.add_field(name = "GAME MECHANICS:", value = "Guess letters\n- Enter \"hint\" to reveal a letter\n- Enter \"save\" to get an extra try\n- Enter \"quit\" to quit the game\n- The game times out if you don't send anything for 1 minute")
         embed.add_field(name = "Wrong Letters:", value = "None", inline = False)
         value = ""
@@ -50,15 +56,18 @@ class GamesCog(commands.Cog):
             value = value +  "\_  "
         embed.add_field(name = "Word:", value = value, inline = False)
         embed.add_field(name = "Wrong Tries Left:", value = tries)
+
         file = discord.File("hangman-pics/" + pic, filename=pic)
         embed.set_image(url=f"attachment://{pic}")
         embed.set_footer(text = "Please enter your next guess. (or \"hint\"/\"save\"/\"quit\")")
+
         if not usingView:
             await interaction.edit_original_response(content = "", attachments = [file], embed=embed)
         else:
             view = Hangman(interaction.user)
             await interaction.edit_original_response(content = "", attachments = [file], embed=embed, view=view)
         embed.clear_fields()
+
         while True:
             try:
                 if not usingView:
@@ -87,6 +96,7 @@ class GamesCog(commands.Cog):
                     else:
                         await interaction.edit_original_response(content = "The game has timed out. Please start a new game with `/start` .", attachments = [], embed = None, view=None)
                         break
+
                 if str_guess == "quit":
                     await interaction.edit_original_response(content = ("Thanks for playing! You have quit the game."), attachments = [], embed = None, view = None)
                     break
@@ -118,45 +128,17 @@ class GamesCog(commands.Cog):
                         pic = "hangman-" + str(9 - tries) + ".png"
                         embed.clear_fields()
                         embed.add_field(name = "Save Used", value = "👌 You now have an extra try!")
-                elif str_guess == "defenition" or str_guess == "def":
-                    """
-                    await interaction.edit_original_response(content = ('Please give me a moment')
-                    if creds.access_token_expired:
-                        gs_client.login()
-                    sheet = gs_client.open('Hangman bot').sheet1
-                    try:
-                        cell = sheet.find(str(interaction.user.id))
-                        column = cell.col + 2
-                        print(column)
-                        print(cell.col)
-                        hints = sheet.cell(cell.row, column).value
-                        hints = str(hints)
-                        hints = int(hints)
-                        if hints == 0:
-                            await interaction.edit_original_response(content = ('You don\'t have any defenitions! They cost 7 coins each! When the game is over, you can buy hints by typing `/buy defenition`!')
-                        else:
-                            defenition = 'Here are the defenitions of the word:\n'
-                            for pos in dictionary.meaning(word):
-                                defenition += f'{pos}:\n'
-                                x = 0
-                                for meaning in dictionary.meaning(word)[pos]:
-                                    x+=1
-                                    defenition += f'{str(x)}. {meaning}\n'
-                            await interaction.edit_original_response(content = (defenition)
-                    except:
-                        await interaction.edit_original_response(content = ('You don\'t have any defenitions! They cost 7 coins each! When the game is over, you can buy hints by typing `/buy defenition`!')
-                    """
                 elif len(str_guess) != 1:
                     embed.clear_fields()
                     embed.add_field(name = "Guess Unsuccessful", value = "You can only guess one letter at a time!")
                 elif str_guess in cl or str_guess in wl:
                     embed.clear_fields()
                     embed.add_field(name = "Guess Unsuccessful", value = "You have already guessed this letter!")
-                elif str_guess in word:
+                elif str_guess in word: # Guess is correct
                     cl += str_guess
                     embed.clear_fields()
                     embed.add_field(name = "✅ Guess Correct!", value = str_guess + " is in the word!")
-                else:                
+                else: # Guess is wrong                
                     tries -= 1
                     wl += str_guess + " "
                     pic = "hangman-" + str(9 - tries) + ".png"
@@ -190,7 +172,7 @@ class GamesCog(commands.Cog):
                 print(cl_txt)
                 embed.add_field(name = "Word:", value = cl_txt)
                 embed.add_field(name = "Wrong tries left:", value = tries)
-                if tries > 9:
+                if tries > 9: # If there are more than 9 tries left (due to saves)
                     pic = "hangman-0.png"
                 file = discord.File("hangman-pics/" + pic, filename=pic)
                 embed.set_image(url = f"attachment://{pic}")

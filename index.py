@@ -8,7 +8,7 @@ class HangmanBot(commands.Bot):
         intents = discord.Intents.default();
         intents.message_content = True
         super().__init__(command_prefix="$", intents=intents, activity=discord.Activity(type=discord.ActivityType.watching, name="you"))
-        self.authors = {}
+        self.authors = {} # Dict containing ppl who have a hangman game running (Format: {author: discord.User, channels which have running hangman game: [discord.TextChannel]})
         self.rw = RandomWords()
         self.index = 0
 

@@ -30,7 +30,7 @@ class SettingsCog(commands.Cog):
         view = UserSettings(interaction.user, tttenabled, getSettings(interaction.user.id))
         await interaction.response.send_message(embed=embed, view=view)
         while True:
-            timed_out = await view.wait()
+            timed_out = await view.wait() # view.wait() returns True if the view was stopped due to a timeout, and it returns False if it wasn't
             if timed_out:
                 view.disableAll()
                 return await interaction.edit_original_response(content = "Interaction timed out...", view=view)
