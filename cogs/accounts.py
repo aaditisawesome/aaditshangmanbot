@@ -12,7 +12,7 @@ class AccountsCog(commands.Cog):
     async def cog_load(self):
         print("Accounts commands loaded!")
 
-    @app_commands.command()
+    @app_commands.command(name = "create-account", description = "Create a hangman account to play hangman games with the bot!")
     async def create_account(self, interaction: discord.Interaction):
         await interaction.response.send_message("Creating account...", ephemeral=True)
         hasAccount = userHasAccount(interaction.user.id)
@@ -33,7 +33,7 @@ class AccountsCog(commands.Cog):
                 return await interaction.edit_original_response(content = "You already have an account!", view=None) 
         await interaction.edit_original_response(content = "You have decided not to create an account. Please tell us what you didn't agree with in the privacy policy or ToS in https://discord.gg/CRGE5nF .", view=None)
 
-    @app_commands.command()
+    @app_commands.command(name = "delete-account", description = "Delete your hangman account :(")
     async def delete_account(self, interaction: discord.Interaction):
         await interaction.response.send_message("Deleting account...", ephemeral = True)
         hasAccount = userHasAccount(interaction.user.id)
@@ -55,7 +55,7 @@ class AccountsCog(commands.Cog):
         await interaction.edit_original_response(content = "You have decided not to delete your account. I am proud of you!", view=None)
 
     @app_commands.command(description = "The bot's privacy policy!")
-    async def policy(interaction):
+    async def policy(self, interaction: discord.Interaction):
         await interaction.response.send_message("Here is our privacy policy: https://github.com/aaditisawesome/aaditshangmanbot/blob/main/README.md . If you agree to the privacy policy and want to create an account, use `/create-account`.")
 
 async def setup(bot):
