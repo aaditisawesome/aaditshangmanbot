@@ -10,7 +10,7 @@ class AccountsCog(commands.Cog):
         self.bot = bot
 
     async def cog_load(self):
-        print("Info commands loaded!")
+        print("Accounts commands loaded!")
 
     @app_commands.command()
     async def create_account(self, interaction: discord.Interaction):
