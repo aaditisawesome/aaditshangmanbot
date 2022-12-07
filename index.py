@@ -41,6 +41,7 @@ class HangmanBot(commands.Bot):
         await self.load_extension("cogs.owner")
         await self.load_extension("cogs.settings")
         self.change_status.start()
+        self.tree.sync()
 
     async def on_ready(self):
         print("Online!")
