@@ -3,6 +3,7 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 from db_actions import *
+import time
 
 from views.hangman import *
 from views.tictactoe import *
@@ -156,7 +157,11 @@ class GamesCog(commands.Cog):
                 if "_" not in cl_txt:
                     embed.clear_fields()
                     embed.title = ":tada: " + interaction.user.name + " won the hangman game! :tada:"
-                    embed.add_field(name = ":tada: You Won! :tada:", value = "You got 7 coins, good job!")
+                    userSettings = getSettings(interaction.user.id)
+                    if(time.time() - userSettings["boost"] <= 3600):
+                        embed.add_field(name = ":tada: You Won! :tada:", value = "You got 14 coins, good job!")
+                    else:
+                        embed.add_field(name = ":tada: You Won! :tada:", value = "You got 7 coins, good job!")
                     embed.set_footer(text = "Thanks for playing!")
                     if not interaction.app_permissions.manage_messages:
                         embed.set_footer(text="If you give me the \"Manage Messages\" permission, I will be able to delete the messages so you don't need to keep scrolling up!")
@@ -187,7 +192,10 @@ class GamesCog(commands.Cog):
                 else:
                     await interaction.edit_original_response(content = "", attachments = [file], embed=embed)
                 if "_" not in cl_txt:
-                    changeItem(interaction.user.id, "coins", 7)
+                    if(time.time() - userSettings["boost"] <= 3600):
+                        changeItem(interaction.user.id, "coins", 14)
+                    else:
+                        changeItem(interaction.user.id, "coins", 7)
                     break
                 elif tries == 0:
                     break

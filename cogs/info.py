@@ -44,6 +44,7 @@ class InfoCog(commands.Cog):
         hex_number = random.randint(0,16777215)
         shopEmbed = discord.Embed(title="Shop", color=hex_number)
         shopEmbed.add_field(name="Hints", value="**Cost**: 5 coins\n**How to buy:** `/buy hint`\n**How to use:** When you are in the middle of a game, type \"hint\" instead of a letter to use.\n**Effects:** Reveals one letter of the word for you!")
+        shopEmbed.add_field(name="Boost", value="**Cost**: 15 coins\n**How to buy:** `/buy boost`\n**How to use:** Automatically used when you buy it\n**Effects:** Doubles the amount of coins you get from winning hangman games for an hour!")
         shopEmbed.add_field(name="Saves", value="**Cost**: Can only be obtained by [giveaways](https://discord.gg/CRGE5nF) or by voting (see `/vote`)\n**How to use:** When you are in the middle of a game, type \"save\" instead of a letter to use.\n**Effects:** Gives you an extra try!!")
         shopEmbed.timestamp = datetime.datetime.now()
         shopEmbed.set_footer(text="More things coming soon!")
