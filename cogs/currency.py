@@ -46,7 +46,7 @@ class CurrencyCog(commands.Cog):
             try:
                 userSettings = getSettings(interaction.user.id)
                 if time.time() - userSettings["boost"] <= 3600:
-                    return await interaction.edit_original_response(content = f"You already have a boost running for another {(time.time() - userSettings['boost']) / 60} minutes and {(time.time() - userSettings['boost']) % 60} seconds!")
+                    return await interaction.edit_original_response(content = f"You already have a boost running! You can see how much time you have left in it using `/boost-status`.")
                 transactionWorked = changeItem(interaction.user.id, "coins", -15)
                 if not transactionWorked:
                     await interaction.edit_original_response(content = "You don't have enough coins (Boosts cost 15 coins each)! Get coins by winning hangman games `/start`! (If you haven't created an account, create one with `/create-account`).")
