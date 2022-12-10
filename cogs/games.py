@@ -159,7 +159,7 @@ class GamesCog(commands.Cog):
                     embed.title = ":tada: " + interaction.user.name + " won the hangman game! :tada:"
                     userSettings = getSettings(interaction.user.id)
                     if(time.time() - userSettings["boost"] <= 3600):
-                        embed.add_field(name = ":tada: You Won! :tada:", value = "You got 14 coins, good job!")
+                        embed.add_field(name = ":tada: You Won! :tada:", value = "Since you have a boost running, you got 14 coins! Good job!")
                     else:
                         embed.add_field(name = ":tada: You Won! :tada:", value = "You got 7 coins, good job!")
                     embed.set_footer(text = "Thanks for playing!")
