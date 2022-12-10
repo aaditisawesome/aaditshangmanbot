@@ -19,7 +19,7 @@ class Help(discord.ui.View):
     async def doubleLeft(self, interaction: discord.Interaction, button: discord.ui.Button):
         self.current_page = 1
         button.disabled = True
-        self.children[1].disabled = True # 
+        self.children[1].disabled = True
         self.children[2].disabled = False
         self.children[3].disabled = False
         embed = discord.Embed(color=self.hex_number)        
@@ -78,9 +78,10 @@ class Help(discord.ui.View):
             embed.add_field(name="</start:1033466791495745577>", value="Start a hangman game with the bot! If you win, you earn 7 coins!")
             embed.add_field(name="/tictactoe", value="Bet a certain amount of coins against another user in a game of tic tac toe! (This can be disabled if you want - see next page)")
         elif self.current_page == 4:
-            embed.title = "Page 4 - Config Settings"
-            embed.description = "Do you have a bunch of poor people who keep betting like 2 coins against you? Why don't you configure your setting for minimum tic tac toe bet? (use the command below)"
+            embed.title = "Page 4 - Config/View Settings"
+            embed.description = "Commands that you can use to view and config any settings that you have."
             embed.add_field(name="/settings", value="Change your user settings using a dropdown! This can help if you do not want pings for tic tac toe games, if you want a better interface for hangman games, ect.")
+            embed.add_field(name="/boost-status", value="If you have bought a boost, check you much time you have left in your boost using this command. See more information about boosts using `/shop`.")
         elif self.current_page == 5:
             embed.title = "Page 5 - Using Coins"
             embed.description = "So you just earned so many coins... What can you do with them?"

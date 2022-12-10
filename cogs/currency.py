@@ -52,7 +52,7 @@ class CurrencyCog(commands.Cog):
                     await interaction.edit_original_response(content = "You don't have enough coins (Boosts cost 15 coins each)! Get coins by winning hangman games `/start`! (If you haven't created an account, create one with `/create-account`).")
                     return
                 changeSetting(interaction.user.id, "boost", time.time())
-                await interaction.edit_original_response(content = "Success! You now have a boost for 1 hour.")
+                await interaction.edit_original_response(content = "Success! You will now receive 2x coins for 1 hour. You can check how much time you have left in your boost using `/boost-status`!")
             except Exception as e:
                 print(e)
         else:
