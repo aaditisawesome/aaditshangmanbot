@@ -1,5 +1,7 @@
 import discord
 from discord.ext import commands, tasks
+from db_actions import *
+import random
 from random_words import RandomWords
 import os
 
@@ -46,5 +48,19 @@ class HangmanBot(commands.Bot):
 
     async def on_ready(self):
         print("Online!")
+
+    async def on_app_command_completion(self, interaction: discord.Interaction, command: discord.app_commands.Command):
+        hasAccount = userHasAccount(interaction.user.id)
+        if(not hasAccount):
+            return
+        tips = ["TIP: We now have a new item called \"boosts\"! Check them out in the `/shop`!",
+                "TIP: Did you know that you can also play hangman by using buttons instead of typing out your guesses? Check out the \"Hangman buttons\" setting using `/settings`!",
+                "TIP: If you are having trouble playing hangman games because you need to scroll up every time you type a letter, you can ask an admin or mod to give the bot the `Manage Messages`, so that the bot can delete your message when you send a guess! If you don't have access to a server staff or you the chat is really active, enable the \"Hangman Buttons\" setting using `/settings`!",
+                "TIP: Did you know that you can bet coins against your friends with the bot by playing tic tac toe? Start a tic tac toe game with one of your friends using `/tictactoe`! Whoever wins the game will win the bet!",
+                "TIP: There are a variety of settings that you can update using `/settings`!",
+                "TIP: Do you want to gain some fame in the bot? If you gain enough coins, your name will show up in `/rich`!"
+        ]
+        num = random.randrange(0, len(tips))
+        await interaction.followup.send(tips[num], ephemeral=True)
 
 HangmanBot().run(os.environ["token"])
