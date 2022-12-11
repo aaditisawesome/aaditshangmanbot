@@ -35,7 +35,8 @@ def initiateUser(userId: int):
         "hangman_buttons": False,
         "ticTacToe": True,
         "minTicTacToe": None,
-        "maxTicTacToe": None
+        "maxTicTacToe": None,
+        "boost": 0
     }
     currencyCol.insert_one(userData)
     settingsCol.insert_one(settingsData)
