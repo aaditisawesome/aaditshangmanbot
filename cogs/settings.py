@@ -1,3 +1,5 @@
+import time
+import math
 import discord
 from discord import app_commands
 from discord.ext import commands
@@ -49,6 +51,16 @@ class SettingsCog(commands.Cog):
                     embed.add_field(name = "Maximum Tic Tac Toe bet", value = "Sets the maximum amount someone can bet against you in Tic Tac Toe\n\nCurrent Value: `" + str(userSettings["maxTicTacToe"]) + "`")
             view = UserSettings(interaction.user, tttenabled, getSettings(interaction.user.id))
             await interaction.edit_original_response(embed=embed, view=view)
+
+    @app_commands.command(name="boost-status", description="Check how long you have in left in your boost, if you bought one.")
+    async def boost_status(self, interaction: discord.Interaction):
+        userSettings = getSettings(interaction.user.id)
+        if(time.time() - userSettings["boost"] >= 3600):
+            return await interaction.response.send_message("You don\'t have a currently have a boost. See more information about boosts by using `/shop`.")
+        print(int(time.time() - userSettings["boost"]))
+        minutes = math.floor((3600 - int(time.time() - userSettings["boost"])) / 60)
+        seconds = (3600 - int(time.time() - userSettings["boost"])) % 60
+        await interaction.response.send_message(f"You have {minutes} minutes and {seconds} seconds left in your boost!")
 
 async def setup(bot):
     await bot.add_cog(SettingsCog(bot=bot))

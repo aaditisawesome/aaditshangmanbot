@@ -2,6 +2,7 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 from db_actions import *
+import time
 
 # Commands which are directly related to the currency system (does not include game commands)
 class CurrencyCog(commands.Cog):
@@ -38,6 +39,20 @@ class CurrencyCog(commands.Cog):
                     return
                 changeItem(interaction.user.id, "hints", amount)
                 await interaction.edit_original_response(content = "Success! You now have " + str(amount) + " more hint(s).")
+            except Exception as e:
+                print(e)
+        elif item == "boost":
+            await interaction.response.send_message("Giving you a boost...")
+            try:
+                userSettings = getSettings(interaction.user.id)
+                if time.time() - userSettings["boost"] <= 3600:
+                    return await interaction.edit_original_response(content = f"You already have a boost running! You can see how much time you have left in it using `/boost-status`.")
+                transactionWorked = changeItem(interaction.user.id, "coins", -15)
+                if not transactionWorked:
+                    await interaction.edit_original_response(content = "You don't have enough coins (Boosts cost 15 coins each)! Get coins by winning hangman games `/start`! (If you haven't created an account, create one with `/create-account`).")
+                    return
+                changeSetting(interaction.user.id, "boost", time.time())
+                await interaction.edit_original_response(content = "Success! You will now receive 2x coins for 1 hour. You can check how much time you have left in your boost using `/boost-status`!")
             except Exception as e:
                 print(e)
         else:
