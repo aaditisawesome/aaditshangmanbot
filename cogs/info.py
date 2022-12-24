@@ -26,9 +26,9 @@ class InfoCog(commands.Cog):
         embed.add_field(name="Support Server", value = "https://discord.gg/CRGE5nF")
         view = Help(hex_number, interaction.user)
         await interaction.response.send_message(embed=embed, view=view)
-        timed_out = await view.wait()
-        if timed_out:
-            await interaction.edit_original_response(content="Interaction timed out...", view=None)
+        # timed_out = await view.wait()
+        # if timed_out:
+        #     await interaction.edit_original_response(content="Interaction timed out...", view=None)
 
     @app_commands.command(description = "The ping of the bot")
     async def ping(self, interaction: discord.Interaction):

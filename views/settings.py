@@ -1,5 +1,7 @@
 import discord
 import datetime
+from db_actions import *
+import random
 
 # All the buttons and modals for the /settings command
 
@@ -76,9 +78,20 @@ class UserSettingsModalButton(discord.ui.Button):
         await interaction.response.send_modal(modal)
         await modal.wait()
         view: UserSettings = self.view
-        view.newValue = modal.newValue
-        view.changeAllowed = modal.changeAllowed
+        changeSetting(interaction.user.id, view.chosen, view.newValue)
+        hex_number = random.randint(0,16777215)
+        tttenabled = False
+        userSettings = getSettings(interaction.user.id)
+        embed = discord.Embed(title= interaction.user.name + "'s User Settings", color=hex_number, description = "These are your current user settings. You can change them using the dropdown menu.")
+        embed.add_field(name = "Hangman Buttons", value = "Using buttons instead of the text based system when playing a hangman game\n\nCurrent Value: `" + str(userSettings["hangman_buttons"]) + "`")
+        embed.add_field(name = "Tic Tac Toe", value = "Allows you to play tic tac toe using `/tictactoe` against other users that also have this settings enabled\n\nCurrent Value: `" + str(userSettings["ticTacToe"]) + "`")
+        if userSettings["ticTacToe"]:
+            tttenabled = True
+            embed.add_field(name = "Minimum Tic Tac Toe bet", value = "Sets the minimum amount someone can bet against you in Tic Tac Toe\n\nCurrent Value: `" + str(userSettings["minTicTacToe"]) + "`")
+            embed.add_field(name = "Maximum Tic Tac Toe bet", value = "Sets the maximum amount someone can bet against you in Tic Tac Toe\n\nCurrent Value: `" + str(userSettings["maxTicTacToe"]) + "`")
         view.stop()
+        view = UserSettings(interaction.user, tttenabled, getSettings(interaction.user.id))
+        await interaction.edit_original_response(embed=embed, view=view)
 
 # Buttons for enabling/disabling a setting (which don't require input) and for quitting the interaction
 class UserSettingsButton(discord.ui.Button):
@@ -98,8 +111,21 @@ class UserSettingsButton(discord.ui.Button):
             view.disableAll()
             view.stop()
             return
-        view.changeAllowed = True
+        changeSetting(interaction.user.id, view.chosen, view.newValue)
+        hex_number = random.randint(0,16777215)
+        tttenabled = False
+        userSettings = getSettings(interaction.user.id)
+        embed = discord.Embed(title= interaction.user.name + "'s User Settings", color=hex_number, description = "These are your current user settings. You can change them using the dropdown menu.")
+        embed.add_field(name = "Hangman Buttons", value = "Using buttons instead of the text based system when playing a hangman game\n\nCurrent Value: `" + str(userSettings["hangman_buttons"]) + "`")
+        embed.add_field(name = "Tic Tac Toe", value = "Allows you to play tic tac toe using `/tictactoe` against other users that also have this settings enabled\n\nCurrent Value: `" + str(userSettings["ticTacToe"]) + "`")
+        if userSettings["ticTacToe"]:
+            tttenabled = True
+            embed.add_field(name = "Minimum Tic Tac Toe bet", value = "Sets the minimum amount someone can bet against you in Tic Tac Toe\n\nCurrent Value: `" + str(userSettings["minTicTacToe"]) + "`")
+            embed.add_field(name = "Maximum Tic Tac Toe bet", value = "Sets the maximum amount someone can bet against you in Tic Tac Toe\n\nCurrent Value: `" + str(userSettings["maxTicTacToe"]) + "`")
         view.stop()
+        original_interaction = view.original_interaction
+        view = UserSettings(interaction.user, tttenabled, getSettings(interaction.user.id), original_interaction)
+        await original_interaction.edit_original_response(embed=embed, view=view)
 
 # Dropdown which displays all the options for selecting the setting, and creates the buttons according to what the user selects
 class UserSettingsDropdown(discord.ui.Select):
@@ -135,9 +161,10 @@ class UserSettingsDropdown(discord.ui.Select):
 
 # The main view for the interaction, which initially contains only the dropdown and the quit button.
 class UserSettings(discord.ui.View):
-    def __init__(self, user, tttenabled: bool, currentSettings):
-        super().__init__(timeout=60)
+    def __init__(self, user, tttenabled: bool, currentSettings, original_interaction: discord.Interaction):
+        super().__init__()
         self.user = user
+        self.original_interaction = original_interaction
         options = [
             discord.SelectOption(label="Hangman Buttons", value = "hangman_buttons", description="Select to configure your setting for hangman buttons!"),
             discord.SelectOption(label="Tic Tac Toe", value = "ticTacToe", description="Select to configure your setting allowing Tic Tac Toe!")

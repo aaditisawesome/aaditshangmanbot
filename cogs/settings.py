@@ -29,28 +29,15 @@ class SettingsCog(commands.Cog):
             tttenabled = True
             embed.add_field(name = "Minimum Tic Tac Toe bet", value = "Sets the minimum amount someone can bet against you in Tic Tac Toe\n\nCurrent Value: `" + str(userSettings["minTicTacToe"]) + "`")
             embed.add_field(name = "Maximum Tic Tac Toe bet", value = "Sets the maximum amount someone can bet against you in Tic Tac Toe\n\nCurrent Value: `" + str(userSettings["maxTicTacToe"]) + "`")
-        view = UserSettings(interaction.user, tttenabled, getSettings(interaction.user.id))
+        view = UserSettings(interaction.user, tttenabled, getSettings(interaction.user.id), interaction)
         await interaction.response.send_message(embed=embed, view=view)
-        while True:
-            timed_out = await view.wait() # view.wait() returns True if the view was stopped due to a timeout, and it returns False if it wasn't
-            if timed_out:
-                view.disableAll()
-                return await interaction.edit_original_response(content = "Interaction timed out...", view=view)
-            if view.quited:
-                return
-            if view.changeAllowed:
-                changeSetting(interaction.user.id, view.chosen, view.newValue)
-                tttenabled = False
-                userSettings = getSettings(interaction.user.id)
-                embed.clear_fields()
-                embed.add_field(name = "Hangman Buttons", value = "Using buttons instead of the text based system when playing a hangman game\n\nCurrent Value: `" + str(userSettings["hangman_buttons"]) + "`")
-                embed.add_field(name = "Tic Tac Toe", value = "Allows you to play tic tac toe using `/tictactoe` against other users that also have this settings enabled\n\nCurrent Value: `" + str(userSettings["ticTacToe"]) + "`")
-                if userSettings["ticTacToe"]:
-                    tttenabled = True
-                    embed.add_field(name = "Minimum Tic Tac Toe bet", value = "Sets the minimum amount someone can bet against you in Tic Tac Toe\n\nCurrent Value: `" + str(userSettings["minTicTacToe"]) + "`")
-                    embed.add_field(name = "Maximum Tic Tac Toe bet", value = "Sets the maximum amount someone can bet against you in Tic Tac Toe\n\nCurrent Value: `" + str(userSettings["maxTicTacToe"]) + "`")
-            view = UserSettings(interaction.user, tttenabled, getSettings(interaction.user.id))
-            await interaction.edit_original_response(embed=embed, view=view)
+        # while True:
+        #     timed_out = await view.wait() # view.wait() returns True if the view was stopped due to a timeout, and it returns False if it wasn't
+        #     if timed_out:
+        #         view.disableAll()
+        #         return await interaction.edit_original_response(content = "Interaction timed out...", view=view)
+        #     if view.quited:
+        #         return
 
     @app_commands.command(name="boost-status", description="Check how long you have in left in your boost, if you bought one.")
     async def boost_status(self, interaction: discord.Interaction):
