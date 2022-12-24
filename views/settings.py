@@ -90,7 +90,7 @@ class UserSettingsModalButton(discord.ui.Button):
             embed.add_field(name = "Minimum Tic Tac Toe bet", value = "Sets the minimum amount someone can bet against you in Tic Tac Toe\n\nCurrent Value: `" + str(userSettings["minTicTacToe"]) + "`")
             embed.add_field(name = "Maximum Tic Tac Toe bet", value = "Sets the maximum amount someone can bet against you in Tic Tac Toe\n\nCurrent Value: `" + str(userSettings["maxTicTacToe"]) + "`")
         view.stop()
-        view = UserSettings(interaction.user, tttenabled, getSettings(interaction.user.id))
+        view = UserSettings(interaction.user, tttenabled, getSettings(interaction.user.id), view.original_interaction)
         await interaction.edit_original_response(embed=embed, view=view)
 
 # Buttons for enabling/disabling a setting (which don't require input) and for quitting the interaction
@@ -105,12 +105,6 @@ class UserSettingsButton(discord.ui.Button):
         elif self.label == "Disable":
             view.newValue = False
             await interaction.response.send_message("That setting has been disabled!", ephemeral=True)
-        else: # Quit button
-            await interaction.response.edit_message(view=None)
-            view.quited = True
-            view.disableAll()
-            view.stop()
-            return
         changeSetting(interaction.user.id, view.chosen, view.newValue)
         hex_number = random.randint(0,16777215)
         tttenabled = False
@@ -140,7 +134,6 @@ class UserSettingsDropdown(discord.ui.Select):
         if view.chosen == "hangman_buttons" or view.chosen == "ticTacToe":
             view.add_item(UserSettingsButton(label="Enable", style = discord.ButtonStyle.green, disabled = self.currentSettings[view.chosen], row=1))
             view.add_item(UserSettingsButton(label="Disable", style = discord.ButtonStyle.red, disabled = not self.currentSettings[view.chosen], row=1))
-            view.add_item(UserSettingsButton(label="Quit", style = discord.ButtonStyle.blurple, disabled = False, row=1))
         else:
             default = self.currentSettings[view.chosen]
             if default is None:
@@ -152,17 +145,16 @@ class UserSettingsDropdown(discord.ui.Select):
             if otherValue == None:
                 otherValue = 0
             view.add_item(UserSettingsModalButton(label="Change Limit", style = discord.ButtonStyle.grey, disabled = False, row=1, modalType = view.chosen, default=str(default), otherValue=otherValue, created_at=self.created_at))
-            view.add_item(UserSettingsButton(label="Quit", style = discord.ButtonStyle.blurple, disabled = False, row=1))
         for option in self.options:
             if option.value == view.chosen:
                 self.placeholder = option.label
                 break
         await interaction.response.edit_message(view=view)
 
-# The main view for the interaction, which initially contains only the dropdown and the quit button.
+# The main view for the interaction, which initially contains only the dropdown.
 class UserSettings(discord.ui.View):
     def __init__(self, user, tttenabled: bool, currentSettings, original_interaction: discord.Interaction):
-        super().__init__()
+        super().__init__(timeout=None)
         self.user = user
         self.original_interaction = original_interaction
         options = [
@@ -173,10 +165,8 @@ class UserSettings(discord.ui.View):
             options.append(discord.SelectOption(label="Minimum Tic Tac Toe bet", value = "minTicTacToe", description="Select to configure your setting for your minimum Tic Tac Toe bet!"))
             options.append(discord.SelectOption(label="Maximum Tic Tac Toe bet", value = "maxTicTacToe", description="Select to configure your setting for your maximum Tic Tac Toe bet!"))
         self.add_item(UserSettingsDropdown(options, currentSettings))
-        self.add_item(UserSettingsButton(label="Quit", style = discord.ButtonStyle.blurple, disabled = False, row=1))
         self.chosen = None
         self.newValue = None
-        self.quited = False
         self.changeAllowed = None
     async def interaction_check(self, interaction: discord.Interaction):
         if interaction.user != self.user:
@@ -186,7 +176,7 @@ class UserSettings(discord.ui.View):
         
     def disableAll(self):
         for item in self.children:
-            if item.row == 1 and item.label != "Quit":
+            if item.row == 1:
                 self.remove_item(item)
             else:
                 item.disabled = True
