@@ -23,6 +23,7 @@ class SettingsCog(commands.Cog):
         hex_number = random.randint(0,16777215)
         tttenabled = False
         embed = discord.Embed(title= interaction.user.name + "'s User Settings", color=hex_number, description = "These are your current user settings. You can change them using the dropdown menu.")
+        embed.add_field(name = "Tips", value = "Periodically send helpful tips about the bot and some new features\n\nCurrent Value: `" + str(userSettings["hangman_buttons"]) + "`")
         embed.add_field(name = "Hangman Buttons", value = "Using buttons instead of the text based system when playing a hangman game\n\nCurrent Value: `" + str(userSettings["hangman_buttons"]) + "`")
         embed.add_field(name = "Tic Tac Toe", value = "Allows you to play tic tac toe using `/tictactoe` against other users that also have this settings enabled\n\nCurrent Value: `" + str(userSettings["ticTacToe"]) + "`")
         if userSettings["ticTacToe"]:
@@ -31,13 +32,6 @@ class SettingsCog(commands.Cog):
             embed.add_field(name = "Maximum Tic Tac Toe bet", value = "Sets the maximum amount someone can bet against you in Tic Tac Toe\n\nCurrent Value: `" + str(userSettings["maxTicTacToe"]) + "`")
         view = UserSettings(interaction.user, tttenabled, getSettings(interaction.user.id), interaction)
         await interaction.response.send_message(embed=embed, view=view)
-        # while True:
-        #     timed_out = await view.wait() # view.wait() returns True if the view was stopped due to a timeout, and it returns False if it wasn't
-        #     if timed_out:
-        #         view.disableAll()
-        #         return await interaction.edit_original_response(content = "Interaction timed out...", view=view)
-        #     if view.quited:
-        #         return
 
     @app_commands.command(name="boost-status", description="Check how long you have in left in your boost, if you bought one.")
     async def boost_status(self, interaction: discord.Interaction):

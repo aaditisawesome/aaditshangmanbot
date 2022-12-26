@@ -83,6 +83,7 @@ class UserSettingsModalButton(discord.ui.Button):
         tttenabled = False
         userSettings = getSettings(interaction.user.id)
         embed = discord.Embed(title= interaction.user.name + "'s User Settings", color=hex_number, description = "These are your current user settings. You can change them using the dropdown menu.")
+        embed.add_field(name = "Tips", value = "Periodically send helpful tips about the bot and some new features\n\nCurrent Value: `" + str(userSettings["hangman_buttons"]) + "`")
         embed.add_field(name = "Hangman Buttons", value = "Using buttons instead of the text based system when playing a hangman game\n\nCurrent Value: `" + str(userSettings["hangman_buttons"]) + "`")
         embed.add_field(name = "Tic Tac Toe", value = "Allows you to play tic tac toe using `/tictactoe` against other users that also have this settings enabled\n\nCurrent Value: `" + str(userSettings["ticTacToe"]) + "`")
         if userSettings["ticTacToe"]:
@@ -110,6 +111,7 @@ class UserSettingsButton(discord.ui.Button):
         tttenabled = False
         userSettings = getSettings(interaction.user.id)
         embed = discord.Embed(title= interaction.user.name + "'s User Settings", color=hex_number, description = "These are your current user settings. You can change them using the dropdown menu.")
+        embed.add_field(name = "Tips", value = "Periodically send helpful tips about the bot and some new features\n\nCurrent Value: `" + str(userSettings["tips"]) + "`")
         embed.add_field(name = "Hangman Buttons", value = "Using buttons instead of the text based system when playing a hangman game\n\nCurrent Value: `" + str(userSettings["hangman_buttons"]) + "`")
         embed.add_field(name = "Tic Tac Toe", value = "Allows you to play tic tac toe using `/tictactoe` against other users that also have this settings enabled\n\nCurrent Value: `" + str(userSettings["ticTacToe"]) + "`")
         if userSettings["ticTacToe"]:
@@ -131,7 +133,7 @@ class UserSettingsDropdown(discord.ui.Select):
         view: UserSettings = self.view
         view.clearButtons()
         view.chosen = self.values[0]
-        if view.chosen == "hangman_buttons" or view.chosen == "ticTacToe":
+        if view.chosen == "tips" or view.chosen == "hangman_buttons" or view.chosen == "ticTacToe":
             view.add_item(UserSettingsButton(label="Enable", style = discord.ButtonStyle.green, disabled = self.currentSettings[view.chosen], row=1))
             view.add_item(UserSettingsButton(label="Disable", style = discord.ButtonStyle.red, disabled = not self.currentSettings[view.chosen], row=1))
         else:
@@ -158,6 +160,7 @@ class UserSettings(discord.ui.View):
         self.user = user
         self.original_interaction = original_interaction
         options = [
+            discord.SelectOption(label="Tips", value = "tips", description="Select to configure your setting for tips!"),
             discord.SelectOption(label="Hangman Buttons", value = "hangman_buttons", description="Select to configure your setting for hangman buttons!"),
             discord.SelectOption(label="Tic Tac Toe", value = "ticTacToe", description="Select to configure your setting allowing Tic Tac Toe!")
         ]
