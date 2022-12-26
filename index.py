@@ -1,5 +1,7 @@
 import discord
 from discord.ext import commands, tasks
+from db_actions import *
+import random
 from random_words import RandomWords
 import os
 
@@ -11,7 +13,16 @@ class HangmanBot(commands.Bot):
         self.authors = {} # Dict containing ppl who have a hangman game running (Format: {author: discord.User, channels which have running hangman game: [discord.TextChannel]})
         self.rw = RandomWords()
         self.index = 0
-
+        self.tips = [
+            "TIP: We now have a new item called \"boosts\"! Check them out in the `/shop`!",
+            "TIP: Did you know that you can also play hangman by using buttons instead of typing out your guesses? Check out the \"Hangman buttons\" setting using `/settings`!",
+            "TIP: If you are having trouble playing hangman games, because you need to scroll up every time you type a letter, you can ask an admin or mod to give the bot the `Manage Messages` permission, so that the bot can delete your message when you send a guess! If you don't have access to server staff, or the chat is really active, enable the \"Hangman Buttons\" setting using `/settings`!",
+            "TIP: Did you know that you can bet coins against your friends with the bot by playing Tic-tac-toe? Start a Tic-tac-toe game with one of your friends using `/tictactoe`!",
+            "TIP: There are a variety of settings that you can update using `/settings`!",
+            "TIP: Do you want to gain some fame in the bot? If you gain enough coins, your name will show up in `/rich`!",
+            "TIP: Am I annoying by sending you these tips so often? If you are, you can disable tips using `/settings`! ||I'm really sorry for being annoying. I really am :cry:. Please forgive me, and I am not intending to do any harm. I'm just trying to help you with the bot. Please. Thank you! I love you :heart:! Ok I think I'm being weird now. I'll stop. Bye!||",
+            "TIP: Did you know what if you vote for the bot, you can earn saves, which are really helpful when you are about to lose a hangman game! See information about voting using `/vote`, and info about saves using `/shop`."
+        ]
     @tasks.loop(seconds=60)
     async def change_status(self):
         statuses = [
@@ -46,5 +57,12 @@ class HangmanBot(commands.Bot):
 
     async def on_ready(self):
         print("Online!")
+
+    async def on_app_command_completion(self, interaction: discord.Interaction, command: discord.app_commands.Command):
+        sendTip = random.randint(1, 5)
+        if (sendTip >= 4):
+            if (not userHasAccount(interaction.user.id) or not getSettings(interaction.user.id)["tips"]): 
+                return
+            await interaction.followup.send(random.choice(self.tips), ephemeral = True)
 
 HangmanBot().run(os.environ["token"])

@@ -3,7 +3,7 @@ import discord
 # Buttons for the help command and editing the embed based on the current page number
 class Help(discord.ui.View):
     def __init__(self, hex_number, user):
-        super().__init__(timeout=60)
+        super().__init__(timeout=None)
         self.current_page = 1
         self.hex_number = hex_number
         self.user = user

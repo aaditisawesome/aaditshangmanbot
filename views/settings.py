@@ -1,5 +1,7 @@
 import discord
 import datetime
+from db_actions import *
+import random
 
 # All the buttons and modals for the /settings command
 
@@ -76,9 +78,21 @@ class UserSettingsModalButton(discord.ui.Button):
         await interaction.response.send_modal(modal)
         await modal.wait()
         view: UserSettings = self.view
-        view.newValue = modal.newValue
-        view.changeAllowed = modal.changeAllowed
+        changeSetting(interaction.user.id, view.chosen, view.newValue)
+        hex_number = random.randint(0,16777215)
+        tttenabled = False
+        userSettings = getSettings(interaction.user.id)
+        embed = discord.Embed(title= interaction.user.name + "'s User Settings", color=hex_number, description = "These are your current user settings. You can change them using the dropdown menu.")
+        embed.add_field(name = "Tips", value = "Periodically send helpful tips about the bot and some new features\n\nCurrent Value: `" + str(userSettings["hangman_buttons"]) + "`")
+        embed.add_field(name = "Hangman Buttons", value = "Using buttons instead of the text based system when playing a hangman game\n\nCurrent Value: `" + str(userSettings["hangman_buttons"]) + "`")
+        embed.add_field(name = "Tic Tac Toe", value = "Allows you to play tic tac toe using `/tictactoe` against other users that also have this settings enabled\n\nCurrent Value: `" + str(userSettings["ticTacToe"]) + "`")
+        if userSettings["ticTacToe"]:
+            tttenabled = True
+            embed.add_field(name = "Minimum Tic Tac Toe bet", value = "Sets the minimum amount someone can bet against you in Tic Tac Toe\n\nCurrent Value: `" + str(userSettings["minTicTacToe"]) + "`")
+            embed.add_field(name = "Maximum Tic Tac Toe bet", value = "Sets the maximum amount someone can bet against you in Tic Tac Toe\n\nCurrent Value: `" + str(userSettings["maxTicTacToe"]) + "`")
         view.stop()
+        view = UserSettings(interaction.user, tttenabled, getSettings(interaction.user.id), view.original_interaction)
+        await interaction.edit_original_response(embed=embed, view=view)
 
 # Buttons for enabling/disabling a setting (which don't require input) and for quitting the interaction
 class UserSettingsButton(discord.ui.Button):
@@ -92,14 +106,22 @@ class UserSettingsButton(discord.ui.Button):
         elif self.label == "Disable":
             view.newValue = False
             await interaction.response.send_message("That setting has been disabled!", ephemeral=True)
-        else: # Quit button
-            await interaction.response.edit_message(view=None)
-            view.quited = True
-            view.disableAll()
-            view.stop()
-            return
-        view.changeAllowed = True
+        changeSetting(interaction.user.id, view.chosen, view.newValue)
+        hex_number = random.randint(0,16777215)
+        tttenabled = False
+        userSettings = getSettings(interaction.user.id)
+        embed = discord.Embed(title= interaction.user.name + "'s User Settings", color=hex_number, description = "These are your current user settings. You can change them using the dropdown menu.")
+        embed.add_field(name = "Tips", value = "Periodically send helpful tips about the bot and some new features\n\nCurrent Value: `" + str(userSettings["tips"]) + "`")
+        embed.add_field(name = "Hangman Buttons", value = "Using buttons instead of the text based system when playing a hangman game\n\nCurrent Value: `" + str(userSettings["hangman_buttons"]) + "`")
+        embed.add_field(name = "Tic Tac Toe", value = "Allows you to play tic tac toe using `/tictactoe` against other users that also have this settings enabled\n\nCurrent Value: `" + str(userSettings["ticTacToe"]) + "`")
+        if userSettings["ticTacToe"]:
+            tttenabled = True
+            embed.add_field(name = "Minimum Tic Tac Toe bet", value = "Sets the minimum amount someone can bet against you in Tic Tac Toe\n\nCurrent Value: `" + str(userSettings["minTicTacToe"]) + "`")
+            embed.add_field(name = "Maximum Tic Tac Toe bet", value = "Sets the maximum amount someone can bet against you in Tic Tac Toe\n\nCurrent Value: `" + str(userSettings["maxTicTacToe"]) + "`")
         view.stop()
+        original_interaction = view.original_interaction
+        view = UserSettings(interaction.user, tttenabled, getSettings(interaction.user.id), original_interaction)
+        await original_interaction.edit_original_response(embed=embed, view=view)
 
 # Dropdown which displays all the options for selecting the setting, and creates the buttons according to what the user selects
 class UserSettingsDropdown(discord.ui.Select):
@@ -111,10 +133,9 @@ class UserSettingsDropdown(discord.ui.Select):
         view: UserSettings = self.view
         view.clearButtons()
         view.chosen = self.values[0]
-        if view.chosen == "hangman_buttons" or view.chosen == "ticTacToe":
+        if view.chosen == "tips" or view.chosen == "hangman_buttons" or view.chosen == "ticTacToe":
             view.add_item(UserSettingsButton(label="Enable", style = discord.ButtonStyle.green, disabled = self.currentSettings[view.chosen], row=1))
             view.add_item(UserSettingsButton(label="Disable", style = discord.ButtonStyle.red, disabled = not self.currentSettings[view.chosen], row=1))
-            view.add_item(UserSettingsButton(label="Quit", style = discord.ButtonStyle.blurple, disabled = False, row=1))
         else:
             default = self.currentSettings[view.chosen]
             if default is None:
@@ -126,19 +147,20 @@ class UserSettingsDropdown(discord.ui.Select):
             if otherValue == None:
                 otherValue = 0
             view.add_item(UserSettingsModalButton(label="Change Limit", style = discord.ButtonStyle.grey, disabled = False, row=1, modalType = view.chosen, default=str(default), otherValue=otherValue, created_at=self.created_at))
-            view.add_item(UserSettingsButton(label="Quit", style = discord.ButtonStyle.blurple, disabled = False, row=1))
         for option in self.options:
             if option.value == view.chosen:
                 self.placeholder = option.label
                 break
         await interaction.response.edit_message(view=view)
 
-# The main view for the interaction, which initially contains only the dropdown and the quit button.
+# The main view for the interaction, which initially contains only the dropdown.
 class UserSettings(discord.ui.View):
-    def __init__(self, user, tttenabled: bool, currentSettings):
-        super().__init__(timeout=60)
+    def __init__(self, user, tttenabled: bool, currentSettings, original_interaction: discord.Interaction):
+        super().__init__(timeout=None)
         self.user = user
+        self.original_interaction = original_interaction
         options = [
+            discord.SelectOption(label="Tips", value = "tips", description="Select to configure your setting for tips!"),
             discord.SelectOption(label="Hangman Buttons", value = "hangman_buttons", description="Select to configure your setting for hangman buttons!"),
             discord.SelectOption(label="Tic Tac Toe", value = "ticTacToe", description="Select to configure your setting allowing Tic Tac Toe!")
         ]
@@ -146,10 +168,8 @@ class UserSettings(discord.ui.View):
             options.append(discord.SelectOption(label="Minimum Tic Tac Toe bet", value = "minTicTacToe", description="Select to configure your setting for your minimum Tic Tac Toe bet!"))
             options.append(discord.SelectOption(label="Maximum Tic Tac Toe bet", value = "maxTicTacToe", description="Select to configure your setting for your maximum Tic Tac Toe bet!"))
         self.add_item(UserSettingsDropdown(options, currentSettings))
-        self.add_item(UserSettingsButton(label="Quit", style = discord.ButtonStyle.blurple, disabled = False, row=1))
         self.chosen = None
         self.newValue = None
-        self.quited = False
         self.changeAllowed = None
     async def interaction_check(self, interaction: discord.Interaction):
         if interaction.user != self.user:
@@ -159,7 +179,7 @@ class UserSettings(discord.ui.View):
         
     def disableAll(self):
         for item in self.children:
-            if item.row == 1 and item.label != "Quit":
+            if item.row == 1:
                 self.remove_item(item)
             else:
                 item.disabled = True
