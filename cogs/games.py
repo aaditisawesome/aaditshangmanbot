@@ -8,6 +8,7 @@ import time
 from views.hangman import *
 from views.tictactoe import *
 from views.confirmprompt import *
+from views.minesweeper import *
 
 # Commands which allow users to play games in the bot
 class GamesCog(commands.Cog):
@@ -264,6 +265,12 @@ class GamesCog(commands.Cog):
         await interaction.edit_original_response(content = view.not_turn.mention + " won!\n" + view.winner.mention + " won " + str(bet) + " coins, and " + view.loser.mention + " lost " + str(bet) + " coins!", view=view)
         changeItem(view.winner.id, "coins", bet)
         changeItem(view.loser.id, "coins", -1 * bet)
+
+    @app_commands.command()
+    async def minesweeper(self, interaction: discord.Interaction):
+        view = Minesweeper(interaction.user)
+        await interaction.response.send_message("Minesweeper!", view=view)
+        await interaction.followup.send("Toggle flag mode!", view=MinesweeperFlags(interaction.user, view))
 
 async def setup(bot):
     await bot.add_cog(GamesCog(bot=bot))
