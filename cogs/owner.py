@@ -18,7 +18,7 @@ class OwnerCog(commands.Cog):
     @commands.command(name="add-coins", description = "Owner only command")
     @commands.check(checkOwner)
     async def add_coins(self, ctx: commands.Context, member: discord.Member, amount: int):
-        changeWorked = changeItem(member.id, "coins", amount)
+        changeWorked = self.bot.db.changeItem(member.id, "coins", amount)
         if not changeWorked:
             return await ctx.send("They have no account!")
         await ctx.send("Success!")
@@ -26,7 +26,7 @@ class OwnerCog(commands.Cog):
     @commands.command(name = "remove-coins", description = "Owner only command")
     @commands.check(checkOwner)
     async def remove_coins(self, ctx: commands.Context, member: discord.Member, amount: int):
-        changeWorked = changeItem(member.id, "coins", -1 * amount)
+        changeWorked = self.bot.db.changeItem(member.id, "coins", -1 * amount)
         if not changeWorked:
             return await ctx.send("They have no account!")
         await ctx.send("Success!")

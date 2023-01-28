@@ -3,13 +3,13 @@ import math
 import discord
 from discord import app_commands
 from discord.ext import commands
-from db_actions import *
 import random
 from views.settings import *
+from bot import HangmanBot
 
 # Settings Command
 class SettingsCog(commands.Cog):
-    def __init__(self, bot: commands.Bot):
+    def __init__(self, bot: HangmanBot):
         self.bot = bot
 
     async def cog_load(self):
@@ -17,7 +17,7 @@ class SettingsCog(commands.Cog):
 
     @app_commands.command(description = "Configure your user settings")
     async def settings(self, interaction: discord.Interaction):
-        userSettings = getSettings(interaction.user.id)
+        userSettings = self.bot.db.getSettings(interaction.user.id)
         if not userSettings:
             return await interaction.response.send_message("You don't have an account yet! Create one using `/create-account`")
         hex_number = random.randint(0,16777215)
@@ -30,12 +30,12 @@ class SettingsCog(commands.Cog):
             tttenabled = True
             embed.add_field(name = "Minimum Tic Tac Toe bet", value = "Sets the minimum amount someone can bet against you in Tic Tac Toe\n\nCurrent Value: `" + str(userSettings["minTicTacToe"]) + "`")
             embed.add_field(name = "Maximum Tic Tac Toe bet", value = "Sets the maximum amount someone can bet against you in Tic Tac Toe\n\nCurrent Value: `" + str(userSettings["maxTicTacToe"]) + "`")
-        view = UserSettings(interaction.user, tttenabled, getSettings(interaction.user.id), interaction)
+        view = UserSettings(interaction.user, tttenabled, self.bot.db.getSettings(interaction.user.id), interaction)
         await interaction.response.send_message(embed=embed, view=view)
 
     @app_commands.command(name="boost-status", description="Check how long you have in left in your boost, if you bought one.")
     async def boost_status(self, interaction: discord.Interaction):
-        userSettings = getSettings(interaction.user.id)
+        userSettings = self.bot.db.getSettings(interaction.user.id)
         if(time.time() - userSettings["boost"] >= 3600):
             return await interaction.response.send_message("You don\'t have a currently have a boost. See more information about boosts by using `/shop`.")
         print(int(time.time() - userSettings["boost"]))

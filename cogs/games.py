@@ -8,10 +8,13 @@ import time
 from views.hangman import *
 from views.tictactoe import *
 from views.confirmprompt import *
+from views.minesweeper import *
+
+from bot import HangmanBot
 
 # Commands which allow users to play games in the bot
 class GamesCog(commands.Cog):
-    def __init__(self, bot: commands.Bot):
+    def __init__(self, bot: HangmanBot):
         self.bot = bot
 
     async def cog_load(self):
@@ -26,7 +29,7 @@ class GamesCog(commands.Cog):
 
         await interaction.response.send_message("Starting hangman game... type \"quit\" anytime to quit.")
 
-        hasAccount = userHasAccount(interaction.user.id)
+        hasAccount = self.bot.db.userHasAccount(interaction.user.id)
         if not hasAccount:
             await interaction.edit_original_response(content = "You don't have an account yet! In order to play hangman, you need to create an account using `/create-account`")
             return
@@ -45,7 +48,7 @@ class GamesCog(commands.Cog):
         tries = 9
         pic = "hangman-0.png"
         word = self.bot.rw.random_word()
-        userSettings = getSettings(interaction.user.id)
+        userSettings = self.bot.db.getSettings(interaction.user.id)
         usingView = userSettings["hangman_buttons"]
         embed = discord.Embed(title = interaction.user.name + "'s hangman game")
         print(word)
@@ -104,7 +107,7 @@ class GamesCog(commands.Cog):
                 elif str_guess == "hint":
                     await interaction.edit_original_response(content = ("Please give me a moment"), attachments = [], embed = None)
                     try:
-                        changeWorked = changeItem(interaction.user.id, "hints", -1)
+                        changeWorked = self.bot.db.changeItem(interaction.user.id, "hints", -1)
                         if not changeWorked:
                             embed.clear_fields()
                             embed.add_field(name = "Hint unsuccessful", value = "You don't have any hints! They cost 5 coins each! You can buy hints using `/buy hint [amount]`!")
@@ -120,7 +123,7 @@ class GamesCog(commands.Cog):
                         print(e)
                 elif str_guess == "save":
                     await interaction.edit_original_response(content = ("Please give me a moment"), attachments = [], embed = None)
-                    changeWorked = changeItem(interaction.user.id, "saves", -1)
+                    changeWorked = self.bot.db.changeItem(interaction.user.id, "saves", -1)
                     if not changeWorked:
                         embed.clear_fields()
                         embed.add_field(name = "Save Unsuccessful", value = "You don\'t have any saves! You earn saves by voting for our bot with `/vote`, or winning giveaways in https://discord.gg/CRGE5nF !")
@@ -157,7 +160,7 @@ class GamesCog(commands.Cog):
                 if "_" not in cl_txt:
                     embed.clear_fields()
                     embed.title = ":tada: " + interaction.user.name + " won the hangman game! :tada:"
-                    userSettings = getSettings(interaction.user.id)
+                    userSettings = self.bot.db.getSettings(interaction.user.id)
                     if(time.time() - userSettings["boost"] <= 3600):
                         embed.add_field(name = ":tada: You Won! :tada:", value = "Since you have a boost running, you got 14 coins! Good job!")
                     else:
@@ -193,9 +196,9 @@ class GamesCog(commands.Cog):
                     await interaction.edit_original_response(content = "", attachments = [file], embed=embed)
                 if "_" not in cl_txt:
                     if(time.time() - userSettings["boost"] <= 3600):
-                        changeItem(interaction.user.id, "coins", 14)
+                        self.bot.db.changeItem(interaction.user.id, "coins", 14)
                     else:
-                        changeItem(interaction.user.id, "coins", 7)
+                        self.bot.db.changeItem(interaction.user.id, "coins", 7)
                     break
                 elif tries == 0:
                     break
@@ -219,13 +222,13 @@ class GamesCog(commands.Cog):
             return await interaction.response.send_message("No way you want to play with a bot lol")
         if interaction.user == opponent:
             return await interaction.response.send_message("Bruh, make some friends. You can't play with yourself!")
-        if not userHasAccount(interaction.user.id):
+        if not self.bot.db.userHasAccount(interaction.user.id):
             return await interaction.response.send_message("You don\'t have an account yet! Create one using `/create-account`!")
-        if not userHasAccount(opponent.id):
+        if not self.bot.db.userHasAccount(opponent.id):
             return await interaction.response.send_message("The opponent you mentioned doesn't have an account yet!")
 
-        user1Settings = getSettings(interaction.user.id)
-        user2Settings = getSettings(opponent.id)
+        user1Settings = self.bot.db.getSettings(interaction.user.id)
+        user2Settings = self.bot.db.getSettings(opponent.id)
         if not user1Settings["ticTacToe"]:
             return await interaction.response.send_message("You do not have tic tac toe enabled in your user settings! Enable it using `/settings`!")
         if not user2Settings["ticTacToe"]:
@@ -239,10 +242,10 @@ class GamesCog(commands.Cog):
         if user2Settings["maxTicTacToe"] != None and bet > user2Settings["maxTicTacToe"]:
             return await interaction.response.send_message(f"Your bet is above your opponent's maximum bet amount: {user2Settings['maxTicTacToe']} coins. (`/settings`)!")
         
-        user1Balance = int(getItems(interaction.user.id)[0])
+        user1Balance = int(self.bot.db.getItems(interaction.user.id)[0])
         if user1Balance < bet:
             return await interaction.response.send_message(content="You don't have that many coins! Please enter a bet that you can afford.")
-        user2Balance = int(getItems(opponent.id)[0])
+        user2Balance = int(self.bot.db.getItems(opponent.id)[0])
         if user2Balance < bet:
             return await interaction.response.send_message(content="Your opponent doesn't have that many coins! Enter a smaller bet or a richer opponent.")
 
@@ -258,12 +261,19 @@ class GamesCog(commands.Cog):
         await view.wait()
         if view.winner is None and not view.tie:
             view.disableAll()
-            changeItem(view.not_turn.id, "coins", bet)
-            changeItem(view.turn.id, "coins", -1 * bet)
+            self.bot.db.changeItem(view.not_turn.id, "coins", bet)
+            self.bot.db.changeItem(view.turn.id, "coins", -1 * bet)
             return await interaction.edit_original_response(content = interaction.user.mention + " vs " + opponent.mention + ": Tic Tac Toe\n\nThe game has timed out, so " + view.not_turn.mention + " automatically won!\n" + view.not_turn.mention + " won " + str(bet) + " coins, and " + view.turn.mention + " lost " + str(bet) + " coins!", view=view)
         await interaction.edit_original_response(content = view.not_turn.mention + " won!\n" + view.winner.mention + " won " + str(bet) + " coins, and " + view.loser.mention + " lost " + str(bet) + " coins!", view=view)
-        changeItem(view.winner.id, "coins", bet)
-        changeItem(view.loser.id, "coins", -1 * bet)
+        self.bot.db.changeItem(view.winner.id, "coins", bet)
+        self.bot.db.changeItem(view.loser.id, "coins", -1 * bet)
+
+    @app_commands.command()
+    async def minesweeper(self, interaction: discord.Interaction):
+        view = Minesweeper(interaction.user)
+        await interaction.response.send_message("Welcome to the minesweeper game! You get 15 coins if you win.\nIf you would like to flag or unflag a square which you know is a mine, you may enable flag mode using the followup message which I sent!", view=view)
+        flag_mode_message = await interaction.followup.send("Toggle flag mode!", view=MinesweeperFlags(interaction.user, view))
+        view.flag_mode_message = flag_mode_message
 
 async def setup(bot):
     await bot.add_cog(GamesCog(bot=bot))
