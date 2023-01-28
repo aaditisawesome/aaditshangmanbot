@@ -76,6 +76,7 @@ class Help(discord.ui.View):
             embed.description = "What can you play?"
             embed.description = "Playing games with the bot (requires for you to have an account)!"
             embed.add_field(name="</start:1033466791495745577>", value="Start a hangman game with the bot! If you win, you earn 7 coins!")
+            embed.add_field(name="/minesweeper", value="Play minesweeper with the bot! If you win, you earn 15 coins! (BETA)")
             embed.add_field(name="/tictactoe", value="Bet a certain amount of coins against another user in a game of tic tac toe! (This can be disabled if you want - see next page)")
         elif self.current_page == 4:
             embed.title = "Page 4 - Config/View Settings"
@@ -98,3 +99,4 @@ class Help(discord.ui.View):
             embed.add_field(name="</invite:1037581414016757851>", value="Invite the bot to your own server!")
             embed.add_field(name="</vote:1033466791495745585>", value="Earn saves by voting for the bot on various bot lists!")
             embed.add_field(name="</help:1033466791495745578>", value="This")
+            embed.set_footer(text="hi")

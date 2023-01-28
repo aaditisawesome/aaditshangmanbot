@@ -5,10 +5,11 @@ from db_actions import *
 import random
 import datetime
 from views.help import *
+from bot import HangmanBot
 
 # Commands which give general info
 class InfoCog(commands.Cog):
-    def __init__(self, bot: commands.Bot):
+    def __init__(self, bot: HangmanBot):
         self.bot = bot
 
     async def cog_load(self):
@@ -52,7 +53,7 @@ class InfoCog(commands.Cog):
         hex_number = random.randint(0,16777215)
         richEmbed = discord.Embed(title="Rich", color=hex_number)
         await interaction.response.send_message("Getting richest users...")
-        richUsers = getRich()
+        richUsers = self.bot.db.getRich()
         for user_id in richUsers: 
                 useradd = await self.bot.fetch_user(user_id)
                 leader = "%d: %s" % (list(richUsers.keys()).index(str(user_id)) + 1, useradd.name)

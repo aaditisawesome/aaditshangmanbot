@@ -1,31 +1,39 @@
 import discord
 import random
 from db_actions import *
+from bot import HangmanBot
 
 class MinesweeperButton(discord.ui.Button):
     def __init__(self, row, column):
         super().__init__(row=row, label = "‎")
         self.row = row
         self.column = column
-        self.message = "Minesweeper!"
+        self.message = "Welcome to the minesweeper game! You get 15 coins if you win.\nIf you would like to flag or unflag a square which you know is a mine, you may enable flag mode using the followup message which I sent!"
+        self.lost = False
 
     async def callback(self, interaction: discord.Interaction):
         view: Minesweeper = self.view
         if view.flag_mode == True:
             if self.emoji == None:
                 self.emoji = discord.PartialEmoji.from_str("<:flag:1058556172753436682>")
+                self.label = None
             else:
+                self.label = "‎"
                 self.emoji = None
-            return
         elif self.emoji == discord.PartialEmoji.from_str("<:flag:1058556172753436682>"):
+            await interaction.response.defer()
             return
         else:
             self.reveal()
-        game_won = view.check_for_win()
-        if game_won:
-            self.message = "You won! Enjoy your 15 coins!!!"
-            view.end_screen()
-            changeItem(interaction.user.id, "coins", 15)
+        if not self.lost:
+            game_won = view.check_for_win()
+            if game_won:
+                self.message = "You won! Enjoy your 15 coins!!!"
+                view.end_screen()
+                HangmanBot().db.changeItem(interaction.user.id, "coins", 15)
+                await view.flag_mode_message.delete()
+        if self.lost:
+            await view.flag_mode_message.delete()
         await interaction.response.edit_message(content=self.message, view=self.view)
 
     def reveal(self):
@@ -45,9 +53,12 @@ class MinesweeperButton(discord.ui.Button):
             print(view.mines)
         if view.mines[self.row][self.column] == "X":
             self.emoji = discord.PartialEmoji(name = "\U0000274c")
+            self.label = None
             self.disabled = True
             view.reveal_all()
-            self.message = "LMAO U LOST!!!!"
+            self.message = "Oh no! You hit a mine! You lose."
+            self.lost = True
+            self.view.stop()
             return
         else:
             total_mines = 0
@@ -58,10 +69,12 @@ class MinesweeperButton(discord.ui.Button):
                             total_mines += 1
             self.disabled = True
             if(total_mines == 0):
+                self.label = "‎"
                 self.emoji = None
                 view.reveal_around_button(self.row, self.column)
             else:
                 self.emoji = discord.PartialEmoji(name = str(total_mines) + "\U000020e3")
+                self.label = None
 
 class Minesweeper(discord.ui.View):
     def __init__(self, user):
@@ -77,6 +90,7 @@ class Minesweeper(discord.ui.View):
         self.mines = None
         self.user = user
         self.flag_mode = False
+        self.flag_mode_message: discord.WebhookMessage = None
         
     async def interaction_check(self, interaction: discord.Interaction):
         if interaction.user != self.user:
@@ -91,7 +105,7 @@ class Minesweeper(discord.ui.View):
                     button.emoji = None
                     button.reveal()
 
-    def reveal_all(self, win):
+    def reveal_all(self):
         for button in self.children:
             button: MinesweeperButton
             if not button.disabled:

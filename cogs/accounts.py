@@ -3,10 +3,11 @@ from discord import app_commands
 from discord.ext import commands
 from db_actions import *
 from views.confirmprompt import *
+from bot import HangmanBot
 
 # Commands which involve the hangman accounts and the legal stuff
 class AccountsCog(commands.Cog):
-    def __init__(self, bot: commands.Bot):
+    def __init__(self, bot: HangmanBot):
         self.bot = bot
 
     async def cog_load(self):
@@ -15,7 +16,7 @@ class AccountsCog(commands.Cog):
     @app_commands.command(name = "create-account", description = "Create a hangman account to play hangman games with the bot!")
     async def create_account(self, interaction: discord.Interaction):
         await interaction.response.send_message("Creating account...", ephemeral=True)
-        hasAccount = userHasAccount(interaction.user.id)
+        hasAccount = self.bot.db.userHasAccount(interaction.user.id)
         if hasAccount:
             return await interaction.edit_original_response(content = "You already have an account!")
         view = ConfirmPrompt(interaction.user)
@@ -24,7 +25,7 @@ class AccountsCog(commands.Cog):
         if view.confirmed == None:
             return await interaction.edit_original_response(content = "Interaction has timed out...", view=None)
         if view.confirmed:
-            userInitiated = initiateUser(interaction.user.id)
+            userInitiated = self.bot.db.initiateUser(interaction.user.id)
             if userInitiated == True:
                 if interaction.user in self.bot.authors:
                     self.bot.authors.pop(interaction.user)
@@ -36,7 +37,7 @@ class AccountsCog(commands.Cog):
     @app_commands.command(name = "delete-account", description = "Delete your hangman account :(")
     async def delete_account(self, interaction: discord.Interaction):
         await interaction.response.send_message("Deleting account...", ephemeral = True)
-        hasAccount = userHasAccount(interaction.user.id)
+        hasAccount = self.bot.db.userHasAccount(interaction.user.id)
         if not hasAccount:
             return await interaction.edit_original_response(content = "You don\'t even have an account! Create one using `/create-account`")
         view = ConfirmPrompt(interaction.user)
@@ -45,7 +46,7 @@ class AccountsCog(commands.Cog):
         if view.confirmed == None:
             return await interaction.edit_original_response(content = "Interaction has timed out...", view=None)
         if view.confirmed:
-            userDeleted = deleteUser(interaction.user.id)
+            userDeleted = self.bot.db.deleteUser(interaction.user.id)
             if userDeleted == True:
                 if interaction.user in self.bot.authors:
                     self.bot.authors.pop(interaction.user)

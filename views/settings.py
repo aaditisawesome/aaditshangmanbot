@@ -2,6 +2,7 @@ import discord
 import datetime
 from db_actions import *
 import random
+from bot import HangmanBot
 
 # All the buttons and modals for the /settings command
 
@@ -78,10 +79,10 @@ class UserSettingsModalButton(discord.ui.Button):
         await interaction.response.send_modal(modal)
         await modal.wait()
         view: UserSettings = self.view
-        changeSetting(interaction.user.id, view.chosen, view.newValue)
+        HangmanBot().db.changeSetting(interaction.user.id, view.chosen, view.newValue)
         hex_number = random.randint(0,16777215)
         tttenabled = False
-        userSettings = getSettings(interaction.user.id)
+        userSettings = HangmanBot().db.getSettings(interaction.user.id)
         embed = discord.Embed(title= interaction.user.name + "'s User Settings", color=hex_number, description = "These are your current user settings. You can change them using the dropdown menu.")
         embed.add_field(name = "Tips", value = "Periodically send helpful tips about the bot and some new features\n\nCurrent Value: `" + str(userSettings["hangman_buttons"]) + "`")
         embed.add_field(name = "Hangman Buttons", value = "Using buttons instead of the text based system when playing a hangman game\n\nCurrent Value: `" + str(userSettings["hangman_buttons"]) + "`")
@@ -91,7 +92,7 @@ class UserSettingsModalButton(discord.ui.Button):
             embed.add_field(name = "Minimum Tic Tac Toe bet", value = "Sets the minimum amount someone can bet against you in Tic Tac Toe\n\nCurrent Value: `" + str(userSettings["minTicTacToe"]) + "`")
             embed.add_field(name = "Maximum Tic Tac Toe bet", value = "Sets the maximum amount someone can bet against you in Tic Tac Toe\n\nCurrent Value: `" + str(userSettings["maxTicTacToe"]) + "`")
         view.stop()
-        view = UserSettings(interaction.user, tttenabled, getSettings(interaction.user.id), view.original_interaction)
+        view = UserSettings(interaction.user, tttenabled, HangmanBot().db.getSettings(interaction.user.id), view.original_interaction)
         await interaction.edit_original_response(embed=embed, view=view)
 
 # Buttons for enabling/disabling a setting (which don't require input) and for quitting the interaction
@@ -106,10 +107,10 @@ class UserSettingsButton(discord.ui.Button):
         elif self.label == "Disable":
             view.newValue = False
             await interaction.response.send_message("That setting has been disabled!", ephemeral=True)
-        changeSetting(interaction.user.id, view.chosen, view.newValue)
+        HangmanBot().db.changeSetting(interaction.user.id, view.chosen, view.newValue)
         hex_number = random.randint(0,16777215)
         tttenabled = False
-        userSettings = getSettings(interaction.user.id)
+        userSettings = HangmanBot().db.getSettings(interaction.user.id)
         embed = discord.Embed(title= interaction.user.name + "'s User Settings", color=hex_number, description = "These are your current user settings. You can change them using the dropdown menu.")
         embed.add_field(name = "Tips", value = "Periodically send helpful tips about the bot and some new features\n\nCurrent Value: `" + str(userSettings["tips"]) + "`")
         embed.add_field(name = "Hangman Buttons", value = "Using buttons instead of the text based system when playing a hangman game\n\nCurrent Value: `" + str(userSettings["hangman_buttons"]) + "`")
@@ -120,7 +121,7 @@ class UserSettingsButton(discord.ui.Button):
             embed.add_field(name = "Maximum Tic Tac Toe bet", value = "Sets the maximum amount someone can bet against you in Tic Tac Toe\n\nCurrent Value: `" + str(userSettings["maxTicTacToe"]) + "`")
         view.stop()
         original_interaction = view.original_interaction
-        view = UserSettings(interaction.user, tttenabled, getSettings(interaction.user.id), original_interaction)
+        view = UserSettings(interaction.user, tttenabled, HangmanBot().db.getSettings(interaction.user.id), original_interaction)
         await original_interaction.edit_original_response(embed=embed, view=view)
 
 # Dropdown which displays all the options for selecting the setting, and creates the buttons according to what the user selects
