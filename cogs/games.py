@@ -199,6 +199,7 @@ class GamesCog(commands.Cog):
                         self.bot.db.changeItem(interaction.user.id, "coins", 14)
                     else:
                         self.bot.db.changeItem(interaction.user.id, "coins", 7)
+                    self.bot.db.addXp(interaction.user.id, random.randrange(15, 30), interaction)
                     break
                 elif tries == 0:
                     break
@@ -263,10 +264,17 @@ class GamesCog(commands.Cog):
             view.disableAll()
             self.bot.db.changeItem(view.not_turn.id, "coins", bet)
             self.bot.db.changeItem(view.turn.id, "coins", -1 * bet)
+            self.bot.db.addXp(view.not_turn.id, random.randrange(1, 5), interaction)
             return await interaction.edit_original_response(content = interaction.user.mention + " vs " + opponent.mention + ": Tic Tac Toe\n\nThe game has timed out, so " + view.not_turn.mention + " automatically won!\n" + view.not_turn.mention + " won " + str(bet) + " coins, and " + view.turn.mention + " lost " + str(bet) + " coins!", view=view)
-        await interaction.edit_original_response(content = view.not_turn.mention + " won!\n" + view.winner.mention + " won " + str(bet) + " coins, and " + view.loser.mention + " lost " + str(bet) + " coins!", view=view)
-        self.bot.db.changeItem(view.winner.id, "coins", bet)
-        self.bot.db.changeItem(view.loser.id, "coins", -1 * bet)
+        elif not view.tie:
+            await interaction.edit_original_response(content = view.not_turn.mention + " won!\n" + view.winner.mention + " won " + str(bet) + " coins, and " + view.loser.mention + " lost " + str(bet) + " coins!", view=view)
+            self.bot.db.changeItem(view.winner.id, "coins", bet)
+            self.bot.db.changeItem(view.loser.id, "coins", -1 * bet)
+            self.bot.db.addXp(view.winner.id, random.randrange(3, 8), interaction)
+        else:
+            self.bot.db.addXp(view.not_turn.id, random.randrange(1, 5))
+            self.bot.db.addXp(view.turn.id, random.randrange(1, 5), interaction)
+
 
     @app_commands.command()
     async def minesweeper(self, interaction: discord.Interaction):

@@ -57,5 +57,11 @@ class OwnerCog(commands.Cog):
         else:
             await ctx.send("Only the owner of the bot can use this command")
 
+    @commands.command()
+    @commands.check(checkOwner)
+    async def sync(self, ctx: discord.ext.commands.Context):
+        await self.bot.tree.sync()
+        await ctx.send("Successfully synced!")
+
 async def setup(bot):
     await bot.add_cog(OwnerCog(bot=bot))

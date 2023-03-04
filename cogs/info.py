@@ -74,6 +74,13 @@ class InfoCog(commands.Cog):
         voteEmbed.set_footer(text="Thank you so much for voting!")
         await interaction.response.send_message(embed=voteEmbed)
 
+    @app_commands.command(description = "See your current level")
+    async def level(self, interaction):
+        userData = self.bot.db.getLevels(interaction.user.id)
+        hex_number = random.randint(0,16777215)
+        embed = discord.Embed(title=interaction.user.name + "'s level", color = hex_number, description=f"\n**Level:** {userData['level']}\n**XP:** {userData['xp']}/{(userData['level'] + 1) * 200}")
+        await interaction.response.send_message(embed=embed)
+
     @app_commands.command(description = "The bot's server count")
     async def servers(self, interaction):
         servers = list(self.bot.guilds)

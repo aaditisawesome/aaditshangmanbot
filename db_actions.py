@@ -1,5 +1,7 @@
 from pymongo import MongoClient
+import discord
 import os
+import random
 
 # Functions which help add, change, or delete any values in the database.
 # They return True if whatever the function is supposed to do works, and False if it doesn't (i.e. if the user does not 
@@ -21,6 +23,7 @@ class MongoDB(MongoClient):
         self.db = self.hangman
         self.currencyCol = self.db.currency
         self.settingsCol = self.db.settings
+        self.levelsCol = self.db.levels
 
     def userHasAccount(self, userId: int) -> bool:
         """
@@ -63,9 +66,16 @@ class MongoDB(MongoClient):
             "boost": 0,
             "tips": True
         }
+        # default values for user settings
+        levelsData = {
+            "_id": str(userId),
+            "level": 0,
+            "xp": 0
+        }
         # insert data into database
         self.currencyCol.insert_one(userData)
         self.settingsCol.insert_one(settingsData)
+        self.levelsCol.insert_one(levelsData)
         return True
 
     def getItems(self, userId: int) -> list:
@@ -89,6 +99,17 @@ class MongoDB(MongoClient):
         """
 
         userData = self.settingsCol.find_one({"_id": str(userId)})
+        # will return None if user doesn't have account
+        return userData
+    
+    def getLevels(self, userId: int) -> dict | None:
+        """
+        Gets the level data for a user.
+
+        userId (int) -- The ID of the user
+        """
+
+        userData = self.levelsCol.find_one({"_id": str(userId)})
         # will return None if user doesn't have account
         return userData
     
@@ -124,6 +145,25 @@ class MongoDB(MongoClient):
             return False
         newAmt = userData[item] + incrementAmt
         self.currencyCol.update_one({"_id": str(userId)}, {"$set": {item: newAmt}})
+        return True
+
+    def addXp(self, userId: int, xpAmount: int, interaction: discord.Interaction):
+        # user doesn't have an account
+        if not self.userHasAccount(userId):
+            return False
+        userData = self.levelsCol.find_one({"_id": str(userId)})
+        if userData == None:
+            userData = {
+            "_id": str(userId),
+            "level": 0,
+            "xp": 0
+            }
+            self.levelsCol.insert_one(userData)
+        if userData["xp"] + xpAmount > (userData["level"] + 1) * 200:
+            self.levelsCol.update_one({"_id": str(userId)}, {"$set": {"xp": userData["xp"] + xpAmount - ((userData["level"] + 1) * 200), "level": userData["level"] + 1}})
+            interaction.followup.send(f"Congrats! You are now level {userData['level'] + 1}!")
+        else:
+            self.levelsCol.update_one({"_id": str(userId)}, {"$set": {"xp": userData["xp"] + xpAmount}})
         return True
 
     def deleteUser(self, userId: int) -> bool:
