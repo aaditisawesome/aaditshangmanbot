@@ -21,6 +21,7 @@ class HangmanBot(commands.Bot):
         """
         self.authors = {} # Dict containing ppl who have a hangman game running (Format: {author: discord.User, channels which have running hangman game: [discord.TextChannel]})
         self.rw = RandomWords()
+        self.blacklisted: str = os.environ["blacklisted"]
         self.index = 0
         self.tips = [
             "TIP: We now have a new item called \"boosts\"! Check them out in the `/shop`!",
@@ -69,6 +70,8 @@ class HangmanBot(commands.Bot):
         print("Online!")
 
     async def on_app_command_completion(self, interaction: discord.Interaction, command: discord.app_commands.Command):
+        if str(interaction.user.id) in self.blacklisted:
+            return
         sendTip = random.randint(1, 5)
         if (sendTip >= 4):
             if (not self.db.userHasAccount(interaction.user.id) or not self.db.getSettings(interaction.user.id)["tips"]): 
