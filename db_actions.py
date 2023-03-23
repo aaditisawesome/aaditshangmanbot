@@ -29,6 +29,8 @@ class MongoDB(MongoClient):
         userId (int) -- The user's id
         """
         # find a user with specified id
+        if(str(userId) in os.environ["blacklisted"]):
+            return False
         userData = self.currencyCol.find_one({"_id": str(userId)})
         # if no data exists, return false
         if userData == None:
@@ -45,6 +47,7 @@ class MongoDB(MongoClient):
         # user already has an account
         if self.userHasAccount(userId):
             return False
+            
         # initialize values for user data
         userData = {
             "_id": str(userId),
