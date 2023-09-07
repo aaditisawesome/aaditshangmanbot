@@ -31,7 +31,7 @@ class MinesweeperButton(discord.ui.Button):
                 self.message = "You won! Enjoy your 15 coins!!!"
                 view.end_screen()
                 HangmanBot().db.changeItem(interaction.user.id, "coins", 15)
-                HangmanBot().db.addXp(interaction.user.id, random.randrange(25, 34), interaction)
+                await HangmanBot().db.addXp(interaction.user.id, random.randrange(25, 34), interaction)
                 await view.flag_mode_message.delete()
         if self.lost:
             await view.flag_mode_message.delete()

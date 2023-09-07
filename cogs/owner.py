@@ -2,10 +2,11 @@ import discord
 from discord.ext import commands
 from db_actions import *
 import requests
+from bot import HangmanBot
 
 # Owner only Commands
 class OwnerCog(commands.Cog):
-    def __init__(self, bot: commands.Bot):
+    def __init__(self, bot: HangmanBot):
         self.bot = bot
 
     async def cog_load(self):
@@ -59,9 +60,15 @@ class OwnerCog(commands.Cog):
 
     @commands.command()
     @commands.check(checkOwner)
-    async def sync(self, ctx: discord.ext.commands.Context):
+    async def sync(self, ctx: commands.Context):
         await self.bot.tree.sync()
         await ctx.send("Successfully synced!")
+    
+    @commands.command(name="add-xp")
+    @commands.check(checkOwner)
+    async def add_xp(self, ctx: commands.Context, user: discord.User, xp: int):
+        self.bot.db.addXp(user.id, xp)
+        await ctx.send("Successfully added xp!")
 
 async def setup(bot):
     await bot.add_cog(OwnerCog(bot=bot))

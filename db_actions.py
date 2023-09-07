@@ -2,6 +2,8 @@ from pymongo import MongoClient
 import discord
 import os
 import random
+import time
+import math
 
 # Functions which help add, change, or delete any values in the database.
 # They return True if whatever the function is supposed to do works, and False if it doesn't (i.e. if the user does not 
@@ -54,6 +56,7 @@ class MongoDB(MongoClient):
             "coins": 0,
             "hints": 0,
             "saves": 0,
+            "keys": 0,
             "defenitions": 0
         }
         # default values for user settings
@@ -64,7 +67,8 @@ class MongoDB(MongoClient):
             "minTicTacToe": None,
             "maxTicTacToe": None,
             "boost": 0,
-            "tips": True
+            "tips": True,
+            "categories": []
         }
         # default values for user settings
         levelsData = {
@@ -124,7 +128,7 @@ class MongoDB(MongoClient):
         userSettings = self.settingsCol.find_one({"_id": str(userId)})
         if userSettings == None:
             return False # User doesn't have account
-        self.settingsCol.update_one({"_id": str(userId)}, {"$set": {setting: newValue}})
+        self.settingsCol.update_one({"_id": str(userId)}, {"$set": {setting: newValue}}, upsert = True)
         return True
 
     def changeItem(self, userId: int, item: str, incrementAmt: int) -> bool:
@@ -144,10 +148,16 @@ class MongoDB(MongoClient):
         if userData[item] + incrementAmt < 0:
             return False
         newAmt = userData[item] + incrementAmt
-        self.currencyCol.update_one({"_id": str(userId)}, {"$set": {item: newAmt}})
+        self.currencyCol.update_one({"_id": str(userId)}, {"$set": {item: newAmt}}, upsert = True)
         return True
+    
+    def addCategory(self, userId: int, category: str):
+        if "categories" not in self.getSettings(userId):
+            self.changeSetting(userId, "categories", [category])
+        else:
+            self.changeSetting(userId, "categories", self.getSettings()["categories"].append(category))
 
-    def addXp(self, userId: int, xpAmount: int, interaction: discord.Interaction):
+    async def addXp(self, userId: int, xpAmount: int, interaction: discord.Interaction = None):
         # user doesn't have an account
         if not self.userHasAccount(userId):
             return False
@@ -159,11 +169,30 @@ class MongoDB(MongoClient):
             "xp": 0
             }
             self.levelsCol.insert_one(userData)
-        if userData["xp"] + xpAmount > (userData["level"] + 1) * 200:
-            self.levelsCol.update_one({"_id": str(userId)}, {"$set": {"xp": userData["xp"] + xpAmount - ((userData["level"] + 1) * 200), "level": userData["level"] + 1}})
-            interaction.followup.send(f"Congrats! You are now level {userData['level'] + 1}!")
+        newXp = userData["xp"] + xpAmount
+        if newXp >= 100:
+            newLevel = userData["level"] + math.floor(newXp / 100)
+            self.levelsCol.update_one({"_id": str(userId)}, {"$set": {"xp": newXp % 100, "level": newLevel}})
+            if newLevel == 5:
+                self.changeItem(userId, "saves", 10)
+            elif newLevel == 10:
+                self.addCategory(userId, "Objects")
+            elif newLevel == 15:
+                self.changeItem(userId, "coins", 100)
+            elif newLevel == 30:
+                self.changeItem(userId, "hints", 35)
+            elif newLevel == 50:
+                self.addCategory(userId, "Animals")
+            elif newLevel == 75:
+                self.changeItem(userId, "hints", 200)
+            elif newLevel == 100:
+                self.addCategory(userId, "Countries")
+            elif newLevel == 1000:
+                self.changeSetting(interaction.user.id, "boost", time.time() + 2592000)
+            if not interaction is None:
+                await interaction.followup.send(f"Congrats! You are now level {newLevel}!")
         else:
-            self.levelsCol.update_one({"_id": str(userId)}, {"$set": {"xp": userData["xp"] + xpAmount}})
+            self.levelsCol.update_one({"_id": str(userId)}, {"$set": {"xp": newXp % 100}})
         return True
 
     def deleteUser(self, userId: int) -> bool:

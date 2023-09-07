@@ -5,6 +5,7 @@ from db_actions import *
 import random
 import datetime
 from views.help import *
+from views.levelrewards import *
 from bot import HangmanBot
 
 # Commands which give general info
@@ -78,7 +79,36 @@ class InfoCog(commands.Cog):
     async def level(self, interaction):
         userData = self.bot.db.getLevels(interaction.user.id)
         hex_number = random.randint(0,16777215)
-        embed = discord.Embed(title=interaction.user.name + "'s level", color = hex_number, description=f"\n**Level:** {userData['level']}\n**XP:** {userData['xp']}/{(userData['level'] + 1) * 200}")
+        if userData is not None:
+            embed = discord.Embed(title=interaction.user.name + "'s level", color = hex_number, description=f"\n**Level:** {userData['level']}\n**XP:** {userData['xp']}/100")
+        else:
+            embed = discord.Embed(title=interaction.user.name + "'s level", color = hex_number, description=f"\n**Level:** 0\n**XP:** 0/100")
+        await interaction.response.send_message(embed=embed, view=LevelRewards(interaction.user))
+
+    @app_commands.command(description = "See all hangman categories and their rewards")
+    async def categories(self, interaction: discord.Interaction):
+        userSettings = self.bot.db.getSettings(interaction.user.id)
+        if "categories" not in userSettings:
+            unlocked_categories = ["All"]
+        else:
+            unlocked_categories = userSettings["categories"]
+        hex_number = random.randint(0,16777215)
+        embed = discord.Embed(title="Categories", color=hex_number)
+        embed.add_field(name = ":green_square: All (unlocked)", value = "Most words in the English dictionary\n**Coins per win:** 7")
+        if "Objects" in unlocked_categories:
+            embed.add_field(name = ":green_square: Objects (unlocked)", value = "Everyday Objects\n**Coins per win:** 7", inline = False)
+        else:
+            embed.add_field(name = ":red_square: Objects (unlocks at level 10)", value = "Most words in the English dictionary\n**Coins per win:** 7", inline = False)
+        
+        if "Animals" in unlocked_categories:
+            embed.add_field(name = ":green_square: Animals (unlocked)", value = "An example of one is <@439641274279264256>\n**Coins per win:** 6", inline = False)
+        else:
+            embed.add_field(name = ":red_square: Animals (unlocks at level 50)", value = "\n**Coins per win:** 6", inline = False)
+
+        if "Countries" in unlocked_categories:
+            embed.add_field(name = ":green_square: Countries (unlocked)", value = "All countries around the world!\n**Coins per win:** 4", inline = False)
+        else:
+            embed.add_field(name = ":red_square: Countries (unlocks at level 100)", value = "All countries around the world!\n**Coins per win:** 4", inline = False)
         await interaction.response.send_message(embed=embed)
 
     @app_commands.command(description = "The bot's server count")
@@ -90,5 +120,5 @@ class InfoCog(commands.Cog):
     async def invite(self, interaction):
         await interaction.response.send_message("Enjoying the bot? Invite me to your own server: https://dsc.gg/hangman !")
 
-async def setup(bot):
+async def setup(bot: HangmanBot):
     await bot.add_cog(InfoCog(bot=bot))
