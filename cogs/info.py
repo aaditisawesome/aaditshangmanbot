@@ -103,7 +103,7 @@ class InfoCog(commands.Cog):
         if "Animals" in unlocked_categories:
             embed.add_field(name = ":green_square: Animals (unlocked)", value = "An example of one is <@439641274279264256>\n**Coins per win:** 6", inline = False)
         else:
-            embed.add_field(name = ":red_square: Animals (unlocks at level 50)", value = "\n**Coins per win:** 6", inline = False)
+            embed.add_field(name = ":red_square: Animals (unlocks at level 50)", value = "An example of one is <@439641274279264256>\n**Coins per win:** 6", inline = False)
 
         if "Countries" in unlocked_categories:
             embed.add_field(name = ":green_square: Countries (unlocked)", value = "All countries around the world!\n**Coins per win:** 4", inline = False)
