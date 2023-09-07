@@ -56,7 +56,6 @@ class MongoDB(MongoClient):
             "coins": 0,
             "hints": 0,
             "saves": 0,
-            "keys": 0,
             "defenitions": 0
         }
         # default values for user settings
