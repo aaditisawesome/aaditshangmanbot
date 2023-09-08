@@ -30,7 +30,7 @@ class HangmanBot(commands.Bot):
             "TIP: Did you know that you can bet coins against your friends with the bot by playing Tic-tac-toe? Start a Tic-tac-toe game with one of your friends using `/tictactoe`!",
             "TIP: There are a variety of settings that you can update using `/settings`!",
             "TIP: Do you want to gain some fame in the bot? If you gain enough coins, your name will show up in `/rich`!",
-            "TIP: Am I annoying by sending you these tips so often? If you are, you can disable tips using `/settings`! ||I'm really sorry for being annoying. I really am :cry:. Please forgive me, and I am not intending to do any harm. I'm just trying to help you with the bot. Please. Thank you! I love you :heart:! Ok I think I'm being weird now. I'll stop. Bye!||",
+            "TIP: Am I annoying by sending you these tips so often? If you are, you can disable tips using `/settings`!",
             "TIP: Did you know what if you vote for the bot, you can earn saves, which are really helpful when you are about to lose a hangman game! See information about voting using `/vote`, and info about saves using `/shop`."
         ]
         self.db = MongoDB()
@@ -64,7 +64,6 @@ class HangmanBot(commands.Bot):
         await self.load_extension("cogs.settings")
         await self.load_extension("cogs.accounts")
         self.change_status.start()
-        await self.tree.sync()
 
     async def on_ready(self):
         print("Online!")
@@ -72,7 +71,7 @@ class HangmanBot(commands.Bot):
     async def on_app_command_completion(self, interaction: discord.Interaction, command: discord.app_commands.Command):
         if str(interaction.user.id) in self.blacklisted:
             return
-        sendTip = random.randint(1, 5)
+        sendTip = random.randrange(1, 5)
         if (sendTip >= 4):
             if (not self.db.userHasAccount(interaction.user.id) or not self.db.getSettings(interaction.user.id)["tips"]): 
                 return

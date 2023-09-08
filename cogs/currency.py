@@ -13,7 +13,7 @@ class CurrencyCog(commands.Cog):
         print("Currency commands loaded!")
 
     @app_commands.command(description = "Check how many coins you have!")
-    async def bal(self, interaction: discord.Interaction, member: discord.Member = None):
+    async def balance(self, interaction: discord.Interaction, member: discord.Member = None):
         await interaction.response.send_message("Counting money...")
         if member != None:
             items = self.bot.db.getItems(member.id)
@@ -45,20 +45,20 @@ class CurrencyCog(commands.Cog):
             await interaction.response.send_message("Giving you a boost...")
             try:
                 userSettings = self.bot.db.getSettings(interaction.user.id)
-                if time.time() - userSettings["boost"] <= 3600:
+                if userSettings["boost"] > time.time():
                     return await interaction.edit_original_response(content = f"You already have a boost running! You can see how much time you have left in it using `/boost-status`.")
                 transactionWorked = self.bot.db.changeItem(interaction.user.id, "coins", -15)
                 if not transactionWorked:
                     await interaction.edit_original_response(content = "You don't have enough coins (Boosts cost 15 coins each)! Get coins by winning hangman games `/start`! (If you haven't created an account, create one with `/create-account`).")
                     return
-                self.bot.db.changeSetting(interaction.user.id, "boost", time.time())
+                self.bot.db.changeSetting(interaction.user.id, "boost", time.time() + 3600)
                 await interaction.edit_original_response(content = "Success! You will now receive 2x coins for 1 hour. You can check how much time you have left in your boost using `/boost-status`!")
             except Exception as e:
                 print(e)
         else:
             await interaction.response.send_message("That is an invalid item. Please see `/shop`")
 
-    @app_commands.command(description = "If you are rich and you're friend is poor, you can give them coins")
+    @app_commands.command(description = "If you are rich and your friend is poor, you can give them coins")
     async def pay(self, interaction, member: discord.Member, amount: int):
         await interaction.response.send_message("Paying money...")
         transactionWorked = self.bot.db.changeItem(interaction.user.id, "coins", -1 * amount)

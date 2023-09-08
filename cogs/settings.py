@@ -36,11 +36,10 @@ class SettingsCog(commands.Cog):
     @app_commands.command(name="boost-status", description="Check how long you have in left in your boost, if you bought one.")
     async def boost_status(self, interaction: discord.Interaction):
         userSettings = self.bot.db.getSettings(interaction.user.id)
-        if(time.time() - userSettings["boost"] >= 3600):
+        if(userSettings["boost"] < time.time()):
             return await interaction.response.send_message("You don\'t have a currently have a boost. See more information about boosts by using `/shop`.")
-        print(int(time.time() - userSettings["boost"]))
-        minutes = math.floor((3600 - int(time.time() - userSettings["boost"])) / 60)
-        seconds = (3600 - int(time.time() - userSettings["boost"])) % 60
+        minutes = math.floor((int(userSettings["boost"] - time.time())) / 60)
+        seconds = (int(userSettings["boost"] - time.time())) % 60
         await interaction.response.send_message(f"You have {minutes} minutes and {seconds} seconds left in your boost!")
 
 async def setup(bot):

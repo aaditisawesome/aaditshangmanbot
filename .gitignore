@@ -1,0 +1,6 @@
+__pycache__
+.env
+archive
+cmds.bash
+db_edit.py
+testing.py
