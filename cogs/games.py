@@ -86,11 +86,13 @@ class GamesCog(commands.Cog):
         embed.add_field(name = "Wrong Letters:", value = "None", inline = False)
         value = ""
         for i in range(len(word)):
+            print(word[i] == "\n" or word[i] == " ")
             if word[i] == "\n" or word[i] == " ":
-                value += "  "
+                value += "  "
             else:
                 value += "\_ "
-        embed.add_field(name = "Word:", value = value, inline = False)
+        print(value)
+        embed.add_field(name = "Word:", value = value, inline = True)
         embed.add_field(name = "Wrong Tries Left:", value = tries)
 
         file = discord.File("hangman-pics/" + pic, filename=pic)
@@ -110,7 +112,7 @@ class GamesCog(commands.Cog):
                     try:
                         guess = await self.bot.wait_for("message", timeout = 60.0, check=check)
                     except asyncio.TimeoutError:
-                        await interaction.edit_original_response(content = "The game has timed out. Please start a new game with `/start` .", attachments = [], embed = None)
+                        await interaction.edit_original_response(content = "The game has timed out. Please start a new game with `/hangman` .", attachments = [], embed = None)
                         break
                     try:
                         await guess.delete()
@@ -130,7 +132,7 @@ class GamesCog(commands.Cog):
                     elif view.game_quit:
                         str_guess = "quit"
                     else:
-                        await interaction.edit_original_response(content = "The game has timed out. Please start a new game with `/start` .", attachments = [], embed = None, view=None)
+                        await interaction.edit_original_response(content = "The game has timed out. Please start a new game with `/hangman` .", attachments = [], embed = None, view=None)
                         break
 
                 if str_guess == "quit":
@@ -167,6 +169,9 @@ class GamesCog(commands.Cog):
                 elif len(str_guess) != 1:
                     embed.clear_fields()
                     embed.add_field(name = "Guess Unsuccessful", value = "You can only guess one letter at a time!")
+                elif str_guess not in "abcdefghijklmnopqrstuvwxyz":
+                    embed.clear_fields()
+                    embed.add_field(name = "Guess Unsuccessful", value = "Your guess must be in the alphabet!")
                 elif str_guess in cl or str_guess in wl:
                     embed.clear_fields()
                     embed.add_field(name = "Guess Unsuccessful", value = "You have already guessed this letter!")
@@ -187,8 +192,8 @@ class GamesCog(commands.Cog):
                 for letter in word:
                     if letter in cl:
                         cl_txt += letter + " "
-                    elif letter == "\n" or word[i] == " ":
-                        cl_txt += "  "
+                    elif letter == "\n" or letter == " ":
+                        cl_txt += "  "
                     else:
                         cl_txt += "\_ "
                 if "_" not in cl_txt:
