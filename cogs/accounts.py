@@ -15,6 +15,8 @@ class AccountsCog(commands.Cog):
 
     @app_commands.command(name = "create-account", description = "Create a hangman account to play hangman games with the bot!")
     async def create_account(self, interaction: discord.Interaction):
+        if str(interaction.user.id) in self.bot.blacklisted:
+            return await interaction.response.send_message("Sorry, you are blacklisted from this bot, so you cannot create an account!", ephemeral=True)
         await interaction.response.send_message("Creating account...", ephemeral=True)
         hasAccount = self.bot.db.userHasAccount(interaction.user.id)
         if hasAccount:
