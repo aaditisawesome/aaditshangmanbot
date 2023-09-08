@@ -71,7 +71,7 @@ class HangmanBot(commands.Bot):
     async def on_app_command_completion(self, interaction: discord.Interaction, command: discord.app_commands.Command):
         if str(interaction.user.id) in self.blacklisted:
             return
-        sendTip = random.randint(1, 5)
+        sendTip = random.randrange(1, 5)
         if (sendTip >= 4):
             if (not self.db.userHasAccount(interaction.user.id) or not self.db.getSettings(interaction.user.id)["tips"]): 
                 return
