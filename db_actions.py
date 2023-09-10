@@ -70,6 +70,7 @@ class MongoDB(MongoClient):
             "maxTicTacToe": None,
             "boost": 0,
             "tips": True,
+            "vote_reminders": True,
             "categories": []
         }
         # default values for user settings
@@ -106,6 +107,22 @@ class MongoDB(MongoClient):
 
         userData = self.settingsCol.find_one({"_id": str(userId)})
         # will return None if user doesn't have account
+
+        default_settings = {
+            "_id": str(userId),
+            "hangman_buttons": False,
+            "ticTacToe": True,
+            "minTicTacToe": None,
+            "maxTicTacToe": None,
+            "boost": 0,
+            "tips": True,
+            "vote_reminders": True,
+            "categories": []
+        }
+        for setting in default_settings:
+            if setting not in userData:
+                self.settingsCol.update_one({"_id": str(userId)}, {"$set": {setting: default_settings[setting]}}, upsert = True)
+        userData = self.settingsCol.find_one({"_id": str(userId)})
         return userData
     
     def getLevels(self, userId: int) -> dict | None:
