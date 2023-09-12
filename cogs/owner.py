@@ -67,7 +67,7 @@ class OwnerCog(commands.Cog):
     @commands.command(name="add-xp")
     @commands.check(checkOwner)
     async def add_xp(self, ctx: commands.Context, user: discord.User, xp: int):
-        self.bot.db.addXp(user.id, xp)
+        await self.bot.db.addXp(user.id, xp)
         await ctx.send("Successfully added xp!")
 
 async def setup(bot):

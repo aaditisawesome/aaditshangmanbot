@@ -1,7 +1,6 @@
 from pymongo import MongoClient
 import discord
 import os
-import random
 import time
 import math
 
@@ -192,21 +191,21 @@ class MongoDB(MongoClient):
         if newXp >= 100:
             newLevel = userData["level"] + math.floor(newXp / 100)
             self.levelsCol.update_one({"_id": str(userId)}, {"$set": {"xp": newXp % 100, "level": newLevel}})
-            if newLevel == 5:
+            if newLevel >= 5 and userData["level"] < 5:
                 self.changeItem(userId, "saves", 10)
-            elif newLevel == 10:
+            elif newLevel >= 10 and userData["level"] < 10:
                 self.addCategory(userId, "Objects")
-            elif newLevel == 15:
+            elif newLevel >= 15 and userData["level"] < 15:
                 self.changeItem(userId, "coins", 100)
-            elif newLevel == 30:
+            elif newLevel >= 30 and userData["level"] < 30:
                 self.changeItem(userId, "hints", 35)
-            elif newLevel == 50:
+            elif newLevel >= 50 and userData["level"] < 50:
                 self.addCategory(userId, "Animals")
-            elif newLevel == 75:
+            elif newLevel >= 75 and userData["level"] < 75:
                 self.changeItem(userId, "hints", 200)
-            elif newLevel == 100:
+            elif newLevel >= 100 and userData["level"] < 100:
                 self.addCategory(userId, "Countries")
-            elif newLevel == 1000:
+            elif newLevel >= 1000 and userData["level"] < 1000:
                 self.changeSetting(interaction.user.id, "boost", time.time() + 2592000)
             if not interaction is None:
                 await interaction.followup.send(f"Congrats! You are now level {newLevel}!")
