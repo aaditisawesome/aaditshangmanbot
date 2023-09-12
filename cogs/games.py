@@ -76,7 +76,7 @@ class GamesCog(commands.Cog):
         wl = ""
         tries = 9
         pic = "hangman-0.png"
-        word = linecache.getline(file, random.randrange(0, count + 1)).lower()
+        word = linecache.getline(file, random.randrange(1, count + 1)).lower()
         usingView = userSettings["hangman_buttons"]
         embed = discord.Embed(title = interaction.user.name + "'s hangman game")
         print(word)
