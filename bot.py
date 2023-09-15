@@ -72,7 +72,7 @@ class HangmanBot(commands.Bot):
         if str(interaction.user.id) in self.blacklisted:
             return
         sendTip = random.randrange(1, 12)
-        if (sendTip >= 4):
+        if (sendTip == 1):
             if (not self.db.userHasAccount(interaction.user.id) or not self.db.getSettings(interaction.user.id)["tips"]): 
                 return
             await interaction.followup.send(random.choice(self.tips), ephemeral = True)
