@@ -3,6 +3,7 @@ import discord
 import os
 import time
 import math
+from dotenv import load_dotenv
 
 # Functions which help add, change, or delete any values in the database.
 # They return True if whatever the function is supposed to do works, and False if it doesn't (i.e. if the user does not 
@@ -18,6 +19,7 @@ class MongoDB(MongoClient):
     Extends pymongo.MongoClient
     """
     def __init__(self):
+        load_dotenv()
         # connects to MongoDB
         super().__init__(os.environ["MONGO_DB_URL"])
         # gets database, currency table, and settings table
