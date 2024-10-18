@@ -3,11 +3,13 @@ from discord.ext import commands
 from db_actions import *
 import requests
 from bot import HangmanBot
+from dotenv import load_dotenv
 
 # Owner only Commands
 class OwnerCog(commands.Cog):
     def __init__(self, bot: HangmanBot):
         self.bot = bot
+        load_dotenv()
 
     async def cog_load(self):
         print("Owner commands loaded!")
