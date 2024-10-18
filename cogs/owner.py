@@ -51,7 +51,7 @@ class OwnerCog(commands.Cog):
                     url = "https://discordbotlist.com/api/v1/bots/748670819156099073/stats"
                 body = {param_name: len(self.bot.guilds)}
                 headers = {"Authorization": auth}
-                r = requests.post(url, data=body, headers=headers)
+                r = requests.post(url, json=body, headers=headers)
                 try:
                     data += f"{web}:\n```{r.json()}```\n"
                 except Exception as e:
