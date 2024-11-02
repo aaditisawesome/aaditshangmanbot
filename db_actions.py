@@ -175,7 +175,7 @@ class MongoDB(MongoClient):
         if "categories" not in self.getSettings(userId):
             self.changeSetting(userId, "categories", [category])
         else:
-            self.changeSetting(userId, "categories", self.getSettings()["categories"].append(category))
+            self.changeSetting(userId, "categories", self.getSettings(userId)["categories"].append(category))
 
     async def addXp(self, userId: int, xpAmount: int, interaction: discord.Interaction = None):
         # user doesn't have an account
