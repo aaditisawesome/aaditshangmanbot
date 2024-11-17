@@ -79,6 +79,7 @@ class UserSettingsModalButton(discord.ui.Button):
         await interaction.response.send_modal(modal)
         await modal.wait()
         view: UserSettings = self.view
+        view.newValue = modal.newValue
         HangmanBot().db.changeSetting(interaction.user.id, view.chosen, view.newValue)
         hex_number = random.randint(0,16777215)
         tttenabled = False
@@ -87,11 +88,11 @@ class UserSettingsModalButton(discord.ui.Button):
         embed.add_field(name = "Tips", value = "Periodically send helpful tips about the bot and some new features\n\nCurrent Value: `" + str(userSettings["tips"]) + "`")
         embed.add_field(name = "Vote Reminders", value = "Sends vote reminders in your DMs when you can vote for the bot again\n\nCurrent Value: `" + str(userSettings["vote_reminders"]) + "`")
         embed.add_field(name = "Hangman Buttons", value = "Using buttons instead of the text based system when playing a hangman game\n\nCurrent Value: `" + str(userSettings["hangman_buttons"]) + "`")
-        embed.add_field(name = "Tic Tac Toe", value = "Allows you to play tic tac toe using `/tictactoe` against other users that also have this settings enabled\n\nCurrent Value: `" + str(userSettings["ticTacToe"]) + "`")
+        embed.add_field(name = "Multiplayer Games", value = "Allows you to play multiplayer games (`/hangman multiplayer`, `/tictactoe`) against other users that also have this settings enabled\n\nCurrent Value: `" + str(userSettings["ticTacToe"]) + "`")
         if userSettings["ticTacToe"]:
             tttenabled = True
-            embed.add_field(name = "Minimum Tic Tac Toe bet", value = "Sets the minimum amount someone can bet against you in Tic Tac Toe\n\nCurrent Value: `" + str(userSettings["minTicTacToe"]) + "`")
-            embed.add_field(name = "Maximum Tic Tac Toe bet", value = "Sets the maximum amount someone can bet against you in Tic Tac Toe\n\nCurrent Value: `" + str(userSettings["maxTicTacToe"]) + "`")
+            embed.add_field(name = "Minimum bet", value = "Sets the minimum amount someone can bet against you in multiplayer games\n\nCurrent Value: `" + str(userSettings["minTicTacToe"]) + "`")
+            embed.add_field(name = "Maximum bet", value = "Sets the maximum amount someone can bet against you in multiplayer games\n\nCurrent Value: `" + str(userSettings["maxTicTacToe"]) + "`")
         view.stop()
         view = UserSettings(interaction.user, tttenabled, HangmanBot().db.getSettings(interaction.user.id), view.original_interaction)
         await interaction.edit_original_response(embed=embed, view=view)
@@ -116,11 +117,11 @@ class UserSettingsButton(discord.ui.Button):
         embed.add_field(name = "Tips", value = "Periodically send helpful tips about the bot and some new features\n\nCurrent Value: `" + str(userSettings["tips"]) + "`")
         embed.add_field(name = "Vote Reminders", value = "Sends vote reminders in your DMs when you can vote for the bot again\n\nCurrent Value: `" + str(userSettings["vote_reminders"]) + "`")
         embed.add_field(name = "Hangman Buttons", value = "Using buttons instead of the text based system when playing a hangman game\n\nCurrent Value: `" + str(userSettings["hangman_buttons"]) + "`")
-        embed.add_field(name = "Tic Tac Toe", value = "Allows you to play tic tac toe using `/tictactoe` against other users that also have this settings enabled\n\nCurrent Value: `" + str(userSettings["ticTacToe"]) + "`")
+        embed.add_field(name = "Multiplayer Games", value = "Allows you to play multiplayer games (`/hangman multiplayer`, `/tictactoe`) against other users that also have this settings enabled\n\nCurrent Value: `" + str(userSettings["ticTacToe"]) + "`")
         if userSettings["ticTacToe"]:
             tttenabled = True
-            embed.add_field(name = "Minimum Tic Tac Toe bet", value = "Sets the minimum amount someone can bet against you in Tic Tac Toe\n\nCurrent Value: `" + str(userSettings["minTicTacToe"]) + "`")
-            embed.add_field(name = "Maximum Tic Tac Toe bet", value = "Sets the maximum amount someone can bet against you in Tic Tac Toe\n\nCurrent Value: `" + str(userSettings["maxTicTacToe"]) + "`")
+            embed.add_field(name = "Minimum bet", value = "Sets the minimum amount someone can bet against you in multiplayer games\n\nCurrent Value: `" + str(userSettings["minTicTacToe"]) + "`")
+            embed.add_field(name = "Maximum bet", value = "Sets the maximum amount someone can bet against you in multiplayer games\n\nCurrent Value: `" + str(userSettings["maxTicTacToe"]) + "`")
         view.stop()
         original_interaction = view.original_interaction
         view = UserSettings(interaction.user, tttenabled, HangmanBot().db.getSettings(interaction.user.id), original_interaction)

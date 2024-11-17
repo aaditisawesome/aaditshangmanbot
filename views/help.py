@@ -67,21 +67,20 @@ class Help(discord.ui.View):
             embed.add_field(name="Support Server", value = "https://discord.gg/CRGE5nF")
         elif self.current_page == 2:
             embed.title = "Page 2 - Accounts and Privacy"
-            embed.description = "Some random things that you need to agree to and stuff"
+            embed.description = "Privacy Policy, Account settings, etc."
             embed.add_field(name="</policy:1033637464356687945>", value="The privacy policy and terms of service of the bot!")
             embed.add_field(name="</create-account:1033637464356687943>", value="Create an account with the bot so that you can use its commands!")
             embed.add_field(name="</delete-account:1033637464356687944>", value="Opt out of the privacy policy by deleting your account with the bot. Hopefully you never use this command :wink:")
         elif self.current_page == 3:
             embed.title = "Page 3 - Game Commands"
-            embed.description = "What can you play?"
             embed.description = "Playing games with the bot (requires for you to have an account)!"
-            embed.add_field(name="</start:1033466791495745577>", value="Start a hangman game with the bot! If you win, you earn 7 coins!")
-            embed.add_field(name="/minesweeper", value="Play minesweeper with the bot! If you win, you earn 15 coins! (BETA)")
-            embed.add_field(name="/tictactoe", value="Bet a certain amount of coins against another user in a game of tic tac toe! (This can be disabled if you want - see next page)")
+            embed.add_field(name="/hangman", value="Start a singleplayer or a multiplayer hangman game! Singleplayer wins earn you 7 coins! (multiplayer can be disabled - see next page)")
+            embed.add_field(name="/minesweeper", value="Play minesweeper with the bot! If you win, you earn 15 coins!")
+            embed.add_field(name="/tictactoe", value="Bet a certain amount of coins against another user in a game of tic tac toe!")
         elif self.current_page == 4:
             embed.title = "Page 4 - Config/View Settings"
             embed.description = "Commands that you can use to view and config any settings that you have."
-            embed.add_field(name="/settings", value="Change your user settings using a dropdown! This can help if you do not want pings for tic tac toe games, if you want a better interface for hangman games, ect.")
+            embed.add_field(name="/settings", value="Change your user settings using a dropdown! This can help if you do not want pings for multiplayer games, if you want a better interface for hangman games, ect.")
             embed.add_field(name="/boost-status", value="If you have bought a boost, check you much time you have left in your boost using this command. See more information about boosts using `/shop`.")
         elif self.current_page == 5:
             embed.title = "Page 5 - Using Coins"

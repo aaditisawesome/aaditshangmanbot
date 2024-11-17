@@ -4,6 +4,7 @@ from db_actions import MongoDB
 import random
 from random_words import RandomWords
 from dotenv import load_dotenv
+from typing import Dict
 import os
 
 class HangmanBot(commands.Bot):
@@ -18,7 +19,7 @@ class HangmanBot(commands.Bot):
         intents = discord.Intents.default()
         intents.message_content = True
         super().__init__(command_prefix="$", intents=intents, activity=discord.Activity(type=discord.ActivityType.watching, name="you"))
-        self.authors = {} # Dict containing ppl who have a hangman game running (Format: {author: discord.User, channels which have running hangman game: [discord.TextChannel]})
+        self.authors: Dict[discord.User, list] = {} # Dict containing ppl who have a hangman game running (Format: {author: discord.User, channels which have running hangman game: [discord.TextChannel]})
         self.rw = RandomWords()
         self.blacklisted: str = os.environ["blacklisted"]
         self.index = 0
@@ -33,12 +34,12 @@ class HangmanBot(commands.Bot):
             "TIP: Did you know what if you vote for the bot, you can earn saves, which are really helpful when you are about to lose a hangman game! See information about voting using `/vote`, and info about saves using `/shop`."
         ]
         self.db = MongoDB()
-    @tasks.loop(seconds=60)
+    @tasks.loop(seconds=600)
     async def change_status(self):
         statuses = [
             "http://aadits-hangman.tk",
             f"{len(self.guilds)} server(s)",
-            "/help || /start",
+            "/help || /hangman",
             "Youtube",
             "people winning hangman",
             "Audit dev me",
@@ -75,3 +76,9 @@ class HangmanBot(commands.Bot):
             if (not self.db.userHasAccount(interaction.user.id) or not self.db.getSettings(interaction.user.id)["tips"]): 
                 return
             await interaction.followup.send(random.choice(self.tips), ephemeral = True)
+
+    async def on_command_error(self, ctx: commands.Context, error: commands.CommandError) -> None:
+        try:
+            raise error
+        except commands.errors.CommandNotFound:
+            pass

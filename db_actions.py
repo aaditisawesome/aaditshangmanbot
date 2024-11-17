@@ -210,9 +210,9 @@ class MongoDB(MongoClient):
             elif newLevel >= 100 and userData["level"] < 100:
                 self.addCategory(userId, "Countries")
             elif newLevel >= 1000 and userData["level"] < 1000:
-                self.changeSetting(interaction.user.id, "boost", time.time() + 2592000)
+                self.changeSetting(userId, "boost", time.time() + 2592000)
             if not interaction is None:
-                await interaction.followup.send(f"Congrats! You are now level {newLevel}!")
+                await interaction.followup.send(f"Congrats! You are now level {newLevel}!", ephemeral=True)
         else:
             self.levelsCol.update_one({"_id": str(userId)}, {"$set": {"xp": newXp % 100}})
         return True
