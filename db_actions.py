@@ -229,6 +229,7 @@ class MongoDB(MongoClient):
         # delete user data and settings
         self.currencyCol.delete_one({"_id": str(userId)})
         self.settingsCol.delete_one({"_id": str(userId)})
+        self.levelsCol.delete_one({"_id": str(userId)})
         return True
 
     def getRich(self):
