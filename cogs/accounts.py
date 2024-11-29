@@ -31,7 +31,7 @@ class AccountsCog(commands.Cog):
             if userInitiated == True:
                 if interaction.user in self.bot.authors:
                     self.bot.authors.pop(interaction.user)
-                return await interaction.edit_original_response(content = "Your account has been created! You can now play hangman using `/start`.", view=None)
+                return await interaction.edit_original_response(content = "Your account has been created! You can now play hangman using `/hangman`.", view=None)
             else:
                 return await interaction.edit_original_response(content = "You already have an account!", view=None) 
         await interaction.edit_original_response(content = "You have decided not to create an account. Please tell us what you didn't agree with in the privacy policy or ToS in https://discord.gg/CRGE5nF .", view=None)
