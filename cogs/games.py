@@ -10,6 +10,7 @@ from views.hangman import *
 from views.tictactoe import *
 from views.confirmprompt import *
 from views.minesweeper import *
+from views.tournament import *
 
 from bot import HangmanBot
 
@@ -277,7 +278,7 @@ class GamesCog(commands.Cog):
         return [app_commands.Choice(name=category, value=category) for category in categories if current.lower() in category.lower()]
 
 
-    @hangman_group.command(description = "Starts a multiplayer hangman game!")
+    @hangman_group.command(description = "Starts a 2 player hangman game!")
     async def multiplayer(self, interaction: discord.Interaction, opponent: discord.User, bet: int):
         if interaction.user in self.bot.authors:
             if interaction.channel in self.bot.authors[interaction.user]:
@@ -592,6 +593,39 @@ class GamesCog(commands.Cog):
     #     if "categories" in userSettings:
     #         categories += userSettings["categories"]
     #     return [app_commands.Choice(name=category, value=category) for category in categories if current.lower() in category.lower()]
+
+    @hangman_group.command(description = "Starts a multiplayer hangman tournament!")
+    async def tournament(self, interaction: discord.Interaction, max: int):
+        if not self.bot.db.userHasAccount(interaction.user.id):
+            return await interaction.response.send_message("You don\'t have an account yet! Create one using `/create-account`!")
+        view = Tournament(max, interaction.user)
+        await interaction.response.send_message("**Hangman Tournament**", view=view)
+        await view.wait()
+        users = view.users
+        msg = "Entered users: "
+        for user in users:
+            msg += f"{user.mention}, "
+        msg.removesuffix(", ")
+        msg += "\nClick below to start the game."
+
+        file = "words/all.txt"
+
+        # Find number of lines in the file
+        def count_generator(reader):
+            b = reader(1024 * 1024)
+            while b:
+                yield b
+                b = reader(1024 * 1024)
+        with open(file, 'rb') as fp:
+            c_generator = count_generator(fp.raw.read)
+            # count each \n
+            count = sum(buffer.count(b'\n') for buffer in c_generator) + 1
+        word = linecache.getline(file, random.randrange(1, count + 1)).lower()
+        view = TournamentGame(users, word, interaction)
+        embed = view.create_embed()
+        await interaction.edit_original_response(content=msg, embed=embed, view=view)
+        await view.wait()
+        await interaction.edit_original_response(content=view.gameswon[0].mention + " won!")
 
     @app_commands.command()
     async def tictactoe(self, interaction: discord.Interaction, opponent: discord.User, bet: int):
