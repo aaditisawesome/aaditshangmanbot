@@ -4,12 +4,13 @@ from db_actions import *
 from bot import HangmanBot
 
 class MinesweeperButton(discord.ui.Button):
-    def __init__(self, row, column):
+    def __init__(self, row, column, mine_count):
         super().__init__(row=row, label = "‎")
         self.row = row
         self.column = column
         self.message = "Welcome to the minesweeper game! You get 15 coins if you win.\nIf you would like to flag or unflag a square which you know is a mine, you may enable flag mode using the followup message which I sent!"
         self.lost = False
+        self.mine_count = mine_count
 
     async def callback(self, interaction: discord.Interaction):
         view: Minesweeper = self.view
@@ -47,7 +48,7 @@ class MinesweeperButton(discord.ui.Button):
                 for j in range(5):
                     if not ((i == self.row - 1 or i == self.row or i == self.row + 1) and (j == self.column - 1 or j == self.column or j == self.column + 1)):
                         possible_mines.append([i, j])
-            for i in range(8):
+            for i in range(self.mine_count):
                 chosen_mine = random.choice(possible_mines)
                 view.mines[chosen_mine[0]][chosen_mine[1]] = "X"
                 possible_mines.remove(chosen_mine)
@@ -82,9 +83,10 @@ class Minesweeper(discord.ui.View):
         super().__init__(timeout=None)
         row = 0
         column = 0
+        self.mine_count = 4
         for i in range (5):
             for j in range(5):
-                self.add_item(MinesweeperButton(row, column))
+                self.add_item(MinesweeperButton(row, column, self.mine_count))
                 column += 1
             row += 1
             column = 0
@@ -118,7 +120,7 @@ class Minesweeper(discord.ui.View):
             button: MinesweeperButton
             if not button.disabled:
                 total_not_disabled += 1
-        if total_not_disabled <= 8:
+        if total_not_disabled <= self.mine_count:
             return True
         return False
 
