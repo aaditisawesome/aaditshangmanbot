@@ -72,6 +72,8 @@ class CurrencyCog(commands.Cog):
     )
     async def pay(self, interaction, member: discord.Member, amount: int):
         await interaction.response.defer(thinking=True)
+        if amount < 0:
+            return await interaction.edit_original_response(content="You cannot pay negative coins!")
         transactionWorked = self.bot.db.changeItem(interaction.user.id, "coins", -1 * amount)
         if not transactionWorked:
             await interaction.edit_original_response(content = "You either don't have that many coins, or you don't have an account. Create an account using `/create-account.`")
