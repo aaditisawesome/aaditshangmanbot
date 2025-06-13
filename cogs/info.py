@@ -6,6 +6,7 @@ import random
 import datetime
 from views.help import *
 from views.levelrewards import *
+from views.leaderboard import *
 from bot import HangmanBot
 
 # Commands which give general info
@@ -20,12 +21,12 @@ class InfoCog(commands.Cog):
     async def help(self, interaction: discord.Interaction):
         hex_number = random.randint(0,16777215)
         embed = discord.Embed(color=hex_number)        
-        embed.title = "Page 1 - How to play hangman using Aadit's Hangman"
-        embed.description = "How can you play hangman using what we have created?"
-        embed.add_field(name="Using the bot (me)!", value="Simply use the </start:1033466791495745577> command after creating an account using </create-account:1033637464356687943>! Invite link: https://dsc.gg/hangman")
-        embed.add_field(name="Using the web app!", value="Visit https://aadits-hangman.herokuapp.com and log in with discord (You don't have to, but then you just won't earn coins)!")
-        embed.add_field(name="Install Python Package!", value="Install the python package from https://pypi.org/project/AaditsHangman/ ! (You will not earn coins)")
-        embed.add_field(name="Support Server", value = "https://discord.gg/CRGE5nF")
+        embed.title = "Page 1 - Getting Started"
+        embed.description = "Welcome to Aadit's Hangman Bot! Here's how to get started."
+        embed.add_field(name="</create-account:1033637464356687943>", value="Create an account to start playing games and earning coins!")
+        embed.add_field(name="/hangman", value="Start a game of hangman after creating your account!")
+        embed.add_field(name="/help", value="View this help menu to learn about all commands")
+        embed.add_field(name="Support Server", value="https://discord.gg/CRGE5nF")
         view = Help(hex_number, interaction.user)
         await interaction.response.send_message(embed=embed, view=view)
 
@@ -49,19 +50,12 @@ class InfoCog(commands.Cog):
         shopEmbed.set_footer(text="More things coming soon!")
         await interaction.response.send_message(embed=shopEmbed)
 
-    @app_commands.command(description = "See the richest people in the bot!")
-    async def rich(self, interaction):
-        hex_number = random.randint(0,16777215)
-        richEmbed = discord.Embed(title="Rich", color=hex_number)
-        await interaction.response.send_message("Getting richest users...")
-        richUsers = self.bot.db.getRich()
-        for user_id in richUsers: 
-                useradd = await self.bot.fetch_user(user_id)
-                leader = "%d: %s" % (list(richUsers.keys()).index(str(user_id)) + 1, useradd.name)
-                embedtext = "%s coins" % (richUsers[user_id])
-                richEmbed.add_field(name=leader, value=embedtext)
-        richEmbed.set_footer(text="Credit for this command goes to CodeMyGame#0923")
-        await interaction.edit_original_response(content = "", embed=richEmbed)  
+    @app_commands.command(description = "See the leaderboard for different stats!")
+    async def leaderboard(self, interaction: discord.Interaction):
+        await interaction.response.defer(thinking=True)
+        view = Leaderboard(interaction.user, self.bot)
+        embed = await view.create_original_embed()
+        await interaction.edit_original_response(content="", embed=embed, view=view)
 
     @app_commands.command(description = "How you can support the bot by voting!")
     async def vote(self, interaction):

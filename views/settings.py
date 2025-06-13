@@ -26,7 +26,7 @@ class UserSettingsModal(discord.ui.Modal):
         self.otherValue = otherValue # The value of the other setting (i.e. if selected setting is Minimum Tic Tac Toe bet, this will be the maximum bet for the user)
         self.created_at = created_at
     async def on_submit(self, interaction: discord.Interaction):
-        if datetime.datetime.utcnow().timestamp() - self.created_at >= 60: # Checks if interaction is timed out
+        if datetime.utcnow().timestamp() - self.created_at >= 60: # Checks if interaction is timed out
             return await interaction.response.send_message("Sorry, the interaction has timed out. Please run the `/settings` command again.", ephemeral=True)
         try:
             self.newValue = int(self.bet_input.value)
@@ -132,7 +132,7 @@ class UserSettingsDropdown(discord.ui.Select):
     def __init__(self, options, currentSettings):
         super().__init__(options=options, placeholder="Select Setting")
         self.currentSettings = currentSettings
-        self.created_at = datetime.datetime.utcnow().timestamp()
+        self.created_at = datetime.utcnow().timestamp()
     async def callback(self, interaction: discord.Interaction):
         view: UserSettings = self.view
         view.clearButtons()

@@ -59,43 +59,46 @@ class Help(discord.ui.View):
         await interaction.response.edit_message(embed=embed, view=self)    
     def changePage(self, embed: discord.Embed):
         if self.current_page == 1:
-            embed.title = "Page 1 - How to play hangman using Aadit's Hangman"
-            embed.description = "How can you play hangman using what we have created?"
-            embed.add_field(name="Using the bot (me)!", value="Simply use the </start:1033466791495745577> command after creating an account using </create-account:1033637464356687943>! Invite link: https://dsc.gg/hangman")
-            embed.add_field(name="Using the web app!", value="Visit https://aadits-hangman.herokuapp.com and log in with discord (You don't have to, but then you just won't earn coins)!")
-            embed.add_field(name="Install Python Package!", value="Install the python package from https://pypi.org/project/AaditsHangman/ ! (You will not earn coins)")
-            embed.add_field(name="Support Server", value = "https://discord.gg/CRGE5nF")
+            embed.title = "Page 1 - Getting Started"
+            embed.description = "Welcome to Aadit's Hangman Bot! Here's how to get started."
+            embed.add_field(name="</create-account:1033637464356687943>", value="Create an account to start playing games and earning coins!")
+            embed.add_field(name="/hangman", value="Start a game of hangman after creating your account!")
+            embed.add_field(name="/help", value="View this help menu to learn about all commands")
+            embed.add_field(name="Support Server", value="https://discord.gg/CRGE5nF")
         elif self.current_page == 2:
-            embed.title = "Page 2 - Accounts and Privacy"
-            embed.description = "Privacy Policy, Account settings, etc."
-            embed.add_field(name="</policy:1033637464356687945>", value="The privacy policy and terms of service of the bot!")
-            embed.add_field(name="</create-account:1033637464356687943>", value="Create an account with the bot so that you can use its commands!")
-            embed.add_field(name="</delete-account:1033637464356687944>", value="Opt out of the privacy policy by deleting your account with the bot. Hopefully you never use this command :wink:")
+            embed.title = "Page 2 - Game Commands"
+            embed.description = "All the games you can play to earn coins!"
+            embed.add_field(name="/hangman (singleplayer | multiplayer)", value="Play hangman! Singleplayer wins earn 7 coins. Multiplayer can be disabled in settings.")
+            embed.add_field(name="/hangman tournament", value="Start a tournament with up to 20 players!")
+            embed.add_field(name="/minesweeper", value="Play minesweeper! Wins earn 15 coins.")
+            embed.add_field(name="/tictactoe", value="Bet coins against other users in tic-tac-toe!")
+            embed.add_field(name="/categories", value="View all available word categories and their rewards")
         elif self.current_page == 3:
-            embed.title = "Page 3 - Game Commands"
-            embed.description = "Playing games with the bot (requires for you to have an account)!"
-            embed.add_field(name="/hangman", value="Start a singleplayer or a multiplayer hangman game! Singleplayer wins earn you 7 coins! (multiplayer can be disabled - see next page)")
-            embed.add_field(name="/minesweeper", value="Play minesweeper with the bot! If you win, you earn 15 coins!")
-            embed.add_field(name="/tictactoe", value="Bet a certain amount of coins against another user in a game of tic tac toe!")
+            embed.title = "Page 3 - Currency Commands"
+            embed.description = "Commands for managing your coins and items"
+            embed.add_field(name="/balance", value="Check your coin balance and items")
+            embed.add_field(name="/shop", value="View items you can buy with coins")
+            embed.add_field(name="/buy", value="Purchase items from the shop")
+            embed.add_field(name="/pay", value="Send coins to other users")
+            embed.add_field(name="/boost-status", value="Check remaining time on your coin boost")
         elif self.current_page == 4:
-            embed.title = "Page 4 - Config/View Settings"
-            embed.description = "Commands that you can use to view and config any settings that you have."
-            embed.add_field(name="/settings", value="Change your user settings using a dropdown! This can help if you do not want pings for multiplayer games, if you want a better interface for hangman games, ect.")
-            embed.add_field(name="/boost-status", value="If you have bought a boost, check you much time you have left in your boost using this command. See more information about boosts using `/shop`.")
+            embed.title = "Page 4 - Settings & Info"
+            embed.description = "Configure your settings and view information"
+            embed.add_field(name="/settings", value="Configure your user settings (multiplayer, interface, etc.)")
+            embed.add_field(name="/level", value="Check your current level and XP")
+            embed.add_field(name="/leaderboard", value="View top players and their stats")
+            embed.add_field(name="/ping", value="Check the bot's response time")
         elif self.current_page == 5:
-            embed.title = "Page 5 - Using Coins"
-            embed.description = "So you just earned so many coins... What can you do with them?"
-            embed.add_field(name="</bal:1033466791495745580>", value="Check how many coins and other stuff you have")
-            embed.add_field(name="</shop:1033466791495745584>", value="See what you can buy from the shop!")
-            embed.add_field(name="</buy:1033466791495745583>", value="Buy something from the shop!")
-            embed.add_field(name="</pay:1033466791529291818>", value="Give one of your poor friends some coins!")
+            embed.title = "Page 5 - Support & Voting"
+            embed.description = "Support the bot and get rewards!"
+            embed.add_field(name="/vote", value="Vote for the bot to earn saves and XP")
+            embed.add_field(name="/policy", value="View the bot's privacy policy and terms of service")
+            embed.add_field(name="/delete-account", value="Delete your account and data")
+            embed.add_field(name="/invite", value="Get the bot's invite link")
         elif self.current_page == 6:
-            embed.title = "Page 6 - Miscellaneous"
-            embed.description = "Other commands that don't fall in any category"
-            embed.add_field(name="</rich:1033466791529291819>", value="See the richest ~~sweats~~ users in the bot! If you want to see your name on the leaderboard, then you need to grind a lot! But if you do, you get to flex on your friends!")
-            embed.add_field(name="</servers:1033466791495745586>", value="See the server count of the bot!")
-            embed.add_field(name="</ping:1033466791495745579>", value="See the response time of the bot!")
-            embed.add_field(name="</invite:1037581414016757851>", value="Invite the bot to your own server!")
-            embed.add_field(name="</vote:1033466791495745585>", value="Earn saves by voting for the bot on various bot lists!")
-            embed.add_field(name="</help:1033466791495745578>", value="This")
-            embed.set_footer(text="hi")
+            embed.title = "Page 6 - Additional Info"
+            embed.description = "Other useful information"
+            embed.add_field(name="Bot Invite", value="https://dsc.gg/hangman")
+            embed.add_field(name="Python Package", value="Install our package: https://pypi.org/project/AaditsHangman/")
+            embed.add_field(name="Support Server", value="https://discord.gg/CRGE5nF")
+            embed.set_footer(text="Thank you for using Aadit's Hangman Bot!")
