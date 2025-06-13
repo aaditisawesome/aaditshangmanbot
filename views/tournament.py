@@ -1,6 +1,10 @@
 import discord
 from views.hangman import *
 from bot import HangmanBot
+import linecache
+import random
+import time
+import asyncio
 
 class LeaveGame(discord.ui.View):
     def __init__(self, tournamentView, original_interaction: discord.Interaction, max: int):
@@ -31,11 +35,11 @@ class Tournament(discord.ui.View):
 
     @discord.ui.button()
     async def join(self, interaction: discord.Interaction, button: discord.ui.Button):
-        if self.currentAmt >= self.max:
-            await interaction.response.send_message("Sorry, the max player limit has reached.")
-        elif interaction.user.id in self.users:
+        if interaction.user.id in self.users:
             await interaction.response.defer() 
             await interaction.followup.send("You have already joined.", view=LeaveGame(self, interaction, self.max), ephemeral=True)
+        elif self.currentAmt >= self.max:
+            await interaction.response.send_message("Sorry, the max player limit has reached.", ephemeral=True)
         else:
             self.currentAmt += 1
             self.users.append(interaction.user)
@@ -52,39 +56,105 @@ class Tournament(discord.ui.View):
             self.stop()
 
 class TournamentGame(discord.ui.View):
-    def __init__(self, users: list[discord.User], word: str, original_interaction: discord.Interaction):
+    def __init__(self, users: list[discord.User], rounds: int, original_interaction: discord.Interaction):
         super().__init__(timeout=None)
-        self.users = users
-        # self.word = word
-        self.word = "a"
+        self.scores = {user: 0 for user in users}
+        self.word = self.get_word()
+        # self.word = "a"
         self.original_interaction = original_interaction
 
-        self.gameswon: list[discord.User] = []
-        self.gameslost: list[discord.User] = []
+        self.completed: list[discord.User] = []
+        self.winners: list[discord.User] = []
 
-        self.gameswonmsg: str = ""
-        self.gameslostmsg: str = ""
+        self.rounds = rounds
+        self.curround = 1
+
+        self.completedmsg: str = ""
         self.notcompletedmsg: str = ""
 
-        for user in self.users:
+        for user in users:
             self.notcompletedmsg += user.mention + "\n"
-
         
+        # Start timeout task for each user
+        self.timeout_tasks = {}
+        for user in users:
+            self.timeout_tasks[user] = asyncio.create_task(self.timeout_user(user))
+        self.timeouted = []
+
+    async def timeout_user(self, user: discord.User):
+        await asyncio.sleep(60)  # Wait for 1 minute
+        if user not in self.completed:
+            self.completed.append(user)
+            self.completedmsg += user.mention + "\n"
+            self.notcompletedmsg = self.notcompletedmsg.replace(user.mention, "")
+            self.timeouted.append(user)
+            
+            if len(self.completed) == len(self.scores.keys()):
+                await self.inter_round()
+            else:
+                await self.original_interaction.edit_original_response(embed=self.create_game_embed())
+
+    async def inter_round(self):
+        if(self.curround >= self.rounds):
+            await self.original_interaction.edit_original_response(embed=self.create_final_embed(), view=None)
+            self.stop()
+        else:
+            if len(self.winners) > 0:
+                self.scores[self.winners[0]] += 3
+            if len(self.winners) > 1:
+                self.scores[self.winners[1]] += 2
+            if len(self.winners) > 2:
+                self.scores[self.winners[2]] += 1
+
+            await self.original_interaction.edit_original_response(embed=self.create_results_embed(), view=None)
+                
+            self.completed = []
+            self.winners = []
+            self.completedmsg = ""
+            self.curround += 1
+            self.timeouted = []
+            self.word = self.get_word()
+            for user in self.scores.keys():
+                self.notcompletedmsg += user.mention + "\n"
+            time.sleep(30)
+            self.timeout_tasks = {}
+            for user in self.scores.keys():
+                self.timeout_tasks[user] = asyncio.create_task(self.timeout_user(user))
+            await self.original_interaction.edit_original_response(embed=self.create_game_embed(), view=self)
+
+
+    def get_word(self):
+        file = "words/all.txt"
+        def count_generator(reader):
+            b = reader(1024 * 1024)
+            while b:
+                yield b
+                b = reader(1024 * 1024)
+        with open(file, 'rb') as fp:
+            c_generator = count_generator(fp.raw.read)
+            # count each \n
+            count = sum(buffer.count(b'\n') for buffer in c_generator) + 1
+        return linecache.getline(file, random.randrange(1, count + 1)).lower()
+
     async def interaction_check(self, interaction: discord.Interaction):
-        if interaction.user not in self.users:
+        if interaction.user not in self.scores.keys():
             await interaction.response.defer()
             return False
         return True
-    
-    def create_embed(self) -> discord.Embed:
-        embed = discord.Embed(title="Hangman Tournament")
-        embed.add_field(name="Games Won", value=self.gameswonmsg)
-        embed.add_field(name="Games Lost", value=self.gameslostmsg)
-        embed.add_field(name="Not Completed", value=self.notcompletedmsg)
-        return embed
 
     @discord.ui.button(label="Play")
     async def play(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if interaction.user in self.timeouted:
+            await interaction.response.send_message("You have timed out, so you lost.", ephemeral=True)
+            return
+        # Cancel the timeout task for this user
+        if interaction.user in self.timeout_tasks:
+            self.timeout_tasks[interaction.user].cancel()
+            del self.timeout_tasks[interaction.user]
+        elif interaction.user not in self.completed:
+            await interaction.response.send_message("You have already started the game.", ephemeral=True)
+            return
+
         await interaction.response.send_message("Starting Hangman Game...", ephemeral=True)
 
         cl = ""
@@ -95,7 +165,7 @@ class TournamentGame(discord.ui.View):
         embed = discord.Embed(title = interaction.user.name + "'s hangman game")
         category = "All"
 
-        embed.add_field(name = "GAME MECHANICS:", value = "Guess letters\n- Enter \"hint\" to reveal a letter\n- Enter \"save\" to get an extra try\n- Enter \"quit\" to quit the game\n")
+        embed.add_field(name = "GAME MECHANICS:", value = "Guess letters\n- Enter \"quit\" to quit the game\n")
         embed.add_field(name = "Category", value = category)
         embed.add_field(name = "Wrong Letters:", value = "None", inline = False)
         value = ""
@@ -111,9 +181,9 @@ class TournamentGame(discord.ui.View):
 
         file = discord.File("hangman-pics/" + pic, filename=pic)
         embed.set_image(url=f"attachment://{pic}")
-        embed.set_footer(text = "Please enter your next guess. (or \"hint\"/\"save\"/\"quit\")")
+        embed.set_footer(text = "Please enter your next guess (or \"quit\").")
 
-        view = Hangman(interaction.user)
+        view = Hangman(interaction.user, False)
         await interaction.edit_original_response(content = "", attachments = [file], embed=embed, view=view)
         embed.clear_fields()
 
@@ -121,51 +191,21 @@ class TournamentGame(discord.ui.View):
             await view.wait()
             if view.guessed_letter is not None:
                 guess_content = view.guessed_letter.lower()
-            elif view.hint_used:
-                guess_content = "hint"
-            elif view.save_used:
-                guess_content = "save"
             elif view.game_quit:
                 guess_content = "quit"
             else:
-                await interaction.edit_original_response(content = "The game has timed out. Please start a new game with `/hangman` .", attachments = [], embed = None, view=None)
+                self.completed.append(interaction.user)
+                self.completedmsg += interaction.user.mention + "\n"
+                self.notcompletedmsg = self.notcompletedmsg.replace(interaction.user.mention, "")
+                await interaction.edit_original_response(content = "The game has timed out, so you lost.", attachments = [], embed = None, view=None)
                 break
 
             if guess_content == "quit":
+                self.completed.append(interaction.user)
+                self.completedmsg += interaction.user.mention + "\n"
+                self.notcompletedmsg = self.notcompletedmsg.replace(interaction.user.mention, "")
                 await interaction.edit_original_response(content = ("Thanks for playing! You have quit the game."), attachments = [], embed = None, view = None)
                 break
-            elif guess_content == "hint":
-                await interaction.edit_original_response(content = ("Please give me a moment"), attachments = [], embed = None)
-                try:
-                    changeWorked = HangmanBot().db.changeItem(interaction.user.id, "hints", -1)
-                    if not changeWorked:
-                        embed.clear_fields()
-                        embed.color = discord.Colour.red()
-                        embed.add_field(name = "Hint unsuccessful", value = "You don't have any hints! They cost 5 coins each! You can buy hints using `/buy hint [amount]`!")
-                    else:
-                        for letter in word:
-                            if letter not in cl:
-                                cl = cl + letter
-                                break
-                            letter = letter
-                        embed.clear_fields()
-                        embed.color = discord.Colour.yellow()
-                        embed.add_field(name = "Hint Used", value = "👌 One hint has been consumed, and a letter has been revealed for you!")
-                except Exception as e:
-                    print(e)
-            elif guess_content == "save":
-                await interaction.edit_original_response(content = ("Please give me a moment"), attachments = [], embed = None)
-                changeWorked = HangmanBot().db.changeItem(interaction.user.id, "saves", -1)
-                if not changeWorked:
-                    embed.clear_fields()
-                    embed.color = discord.Colour.red()
-                    embed.add_field(name = "Save Unsuccessful", value = "You don\'t have any saves! You earn saves by voting for our bot with `/vote`, or winning giveaways in https://discord.gg/CRGE5nF !")
-                else:
-                    tries += 1
-                    pic = "hangman-" + str(9 - tries) + ".png"
-                    embed.clear_fields()
-                    embed.color = discord.Colour.yellow()
-                    embed.add_field(name = "Save Used", value = "👌 You now have an extra try!")
             elif len(guess_content) != 1:
                 embed.clear_fields()
                 embed.color = discord.Colour.orange()
@@ -229,19 +269,63 @@ class TournamentGame(discord.ui.View):
             if "_" not in cl_txt or tries == 0:
                 await interaction.edit_original_response(content = "", attachments = [file], embed=embed, view=None)
             else:
-                view = Hangman(interaction.user)
+                view = Hangman(interaction.user, False)
                 await interaction.edit_original_response(content = "", attachments = [file], embed=embed, view=view)
             if "_" not in cl_txt:
-                self.gameswon.append(interaction.user)
-                self.gameswonmsg += interaction.user.mention + "\n"
+                self.winners.append(interaction.user)
+                self.completed.append(interaction.user)
+                self.completedmsg += interaction.user.mention + "\n"
                 self.notcompletedmsg = self.notcompletedmsg.replace(interaction.user.mention, "")
                 print(self.notcompletedmsg)
                 break
             elif tries == 0:
-                self.gameslost.append(interaction.user)
-                self.gameslostmsg += interaction.user.mention + "\n"
+                self.completed.append(interaction.user)
+                self.completedmsg += interaction.user.mention + "\n"
                 self.notcompletedmsg = self.notcompletedmsg.replace(interaction.user.mention, "")
                 break
-        await self.original_interaction.edit_original_response(embed=self.create_embed())
-        if len(self.gameswon) + len(self.gameslost) == len(self.users):
-            self.stop()
+        if len(self.completed) == len(self.scores.keys()):
+            if(self.curround >= self.rounds):
+                await self.original_interaction.edit_original_response(embed=self.create_final_embed(), view=None)
+                self.stop()
+            else:
+                await self.inter_round()
+        else:
+            await self.original_interaction.edit_original_response(embed=self.create_game_embed())
+
+    def create_game_embed(self) -> discord.Embed:
+        embed = discord.Embed(title=f"Round {self.curround}", description="Hangman Tournament", color=discord.Colour.orange())
+        embed.add_field(name="Completed", value=self.completedmsg, inline=False)
+        embed.add_field(name="Not Completed", value=self.notcompletedmsg)
+        return embed
+
+    def create_results_embed(self):
+        embed = discord.Embed(title=f"Round {self.curround} Results", color=discord.Colour.green())
+
+        placements = ["1st Place", "2nd Place", "3rd Place"]
+        result_lines = [f"{placements[i]}: {self.winners[i].mention}" for i in range(len(self.winners))]
+        embed.description = '\n'.join(result_lines)
+
+        sorted_scores = sorted(self.scores.items(), key=lambda item: item[1], reverse=True)
+        embed.add_field(name="Current Scores", value='\n'.join(f"{key.mention}: {value}" for key, value in sorted_scores))
+        embed.add_field(name="", value=f"Next round stars <t:{int(time.time()) + 30}:R>")
+        embed.set_footer(text=f"Round {self.curround} of {self.rounds}")
+
+        return embed
+
+    def create_final_embed(self):
+        if len(self.winners) > 0:
+            self.scores[self.winners[0]] += 3
+        if len(self.winners) > 1:
+            self.scores[self.winners[1]] += 2
+        if len(self.winners) > 2:
+            self.scores[self.winners[2]] += 1
+        
+        embed = discord.Embed(title="Final Scores", color=discord.Colour.gold())
+
+        sorted_scores = sorted(self.scores.items(), key=lambda item: item[1], reverse=True)
+        medals = ["🥇", "🥈", "🥉"]
+        score_lines = [f"{medals[i] if i < 3 else f'{i+1}.'} {player.mention}: {score}" for i, (player, score) in enumerate(sorted_scores)]
+        embed.description = '\n'.join(score_lines)
+
+        return embed
+        

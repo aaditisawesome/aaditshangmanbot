@@ -380,7 +380,7 @@ class GamesCog(commands.Cog):
 
         category = "All"
 
-        embed.add_field(name = "GAME MECHANICS:", value = "\n- Guess letters\n- The turn switches when you enter a wrong guess\n- Whoever completes the word wins\n- Enter \"hint\" to reveal a letter\n- Enter \"save\" to get an extra try\n- Enter \"quit\" to quit the game\n- You have 1 minute to respond")
+        embed.add_field(name = "GAME MECHANICS:", value = "\n- Guess letters\n- The turn switches when you enter a wrong guess\n- Whoever completes the word wins\n- Enter \"quit\" to quit the game\n- You have 1 minute to respond")
         embed.add_field(name = "Category", value = category)
         embed.add_field(name = "Current Turn", value = turn.mention)
         embed.add_field(name = "Wrong Letters:", value = "None", inline = False)
@@ -397,12 +397,12 @@ class GamesCog(commands.Cog):
 
         file = discord.File("hangman-pics/" + pic, filename=pic)
         embed.set_image(url=f"attachment://{pic}")
-        embed.set_footer(text = "Please enter your next guess. (or \"hint\"/\"save\"/\"quit\")")
+        embed.set_footer(text = "Please enter your next guess (or \"quit\").")
 
         if not usingView:
             await interaction.edit_original_response(content = "It is currently " + turn.mention + "'s turn", attachments = [file], embed=embed)
         else:
-            view = Hangman(turn)
+            view = Hangman(turn, False)
             await interaction.edit_original_response(content = "It is currently " + turn.mention + "'s turn", attachments = [file], embed=embed, view=view)
         embed.clear_fields()
 
@@ -436,10 +436,6 @@ class GamesCog(commands.Cog):
                     await view.wait()
                     if view.guessed_letter is not None:
                         guess_content = view.guessed_letter.lower()
-                    elif view.hint_used:
-                        guess_content = "hint"
-                    elif view.save_used:
-                        guess_content = "save"
                     elif view.game_quit:
                         guess_content = "quit"
                     else:
@@ -447,44 +443,12 @@ class GamesCog(commands.Cog):
                         not_turn = interaction.user if turn == opponent else opponent
                         self.bot.db.changeItem(turn.id, "coins", -1 * bet)
                         self.bot.db.changeItem(turn.id, "coins", bet)
-                        self.bot.db.addXp(not_turn.id, random.randrange(5, 15), interaction)
+                        await self.bot.db.addXp(not_turn.id, random.randrange(5, 15), interaction)
                         break
 
                 if guess_content == "quit":
                     await interaction.edit_original_response(content = ("Thanks for playing! You have quit the game."), attachments = [], embed = None, view = None)
                     break
-                elif guess_content == "hint":
-                    await interaction.edit_original_response(content = ("Please give me a moment"), attachments = [], embed = None)
-                    try:
-                        changeWorked = self.bot.db.changeItem(turn.id, "hints", -1)
-                        if not changeWorked:
-                            embed.clear_fields()
-                            embed.color = discord.Colour.red()
-                            embed.add_field(name = "Hint unsuccessful", value = "You don't have any hints! They cost 5 coins each! You can buy hints using `/buy hint [amount]`!")
-                        else:
-                            for letter in word:
-                                if letter not in cl:
-                                    cl = cl + letter
-                                    break
-                                letter = letter
-                            embed.clear_fields()
-                            embed.color = discord.Colour.yellow()
-                            embed.add_field(name = "Hint Used", value = "👌 One hint has been consumed, and a letter has been revealed for you!")
-                    except Exception as e:
-                        print(e)
-                elif guess_content == "save":
-                    await interaction.edit_original_response(content = ("Please give me a moment"), attachments = [], embed = None)
-                    changeWorked = self.bot.db.changeItem(interaction.user.id, "saves", -1)
-                    if not changeWorked:
-                        embed.clear_fields()
-                        embed.color = discord.Colour.red()
-                        embed.add_field(name = "Save Unsuccessful", value = "You don\'t have any saves! You earn saves by voting for our bot with `/vote`, or winning giveaways in https://discord.gg/CRGE5nF !")
-                    else:
-                        tries += 1
-                        pic = "hangman-" + str(9 - tries) + ".png"
-                        embed.clear_fields()
-                        embed.color = discord.Colour.yellow()
-                        embed.add_field(name = "Save Used", value = "👌 You now have an extra try!")
                 elif len(guess_content) != 1:
                     embed.clear_fields()
                     embed.color = discord.Colour.orange()
@@ -557,7 +521,7 @@ class GamesCog(commands.Cog):
                     if "_" not in cl_txt or tries == 0:
                         await interaction.edit_original_response(content = msgContent, attachments = [file], embed=embed, view=None)
                     else:
-                        view = Hangman(turn)
+                        view = Hangman(turn, False)
                         await interaction.edit_original_response(content = msgContent, attachments = [file], embed=embed, view=view)
                 else:
                     await interaction.edit_original_response(content = msgContent, attachments = [file], embed=embed)
@@ -595,39 +559,28 @@ class GamesCog(commands.Cog):
     #     return [app_commands.Choice(name=category, value=category) for category in categories if current.lower() in category.lower()]
 
     @hangman_group.command(description = "Starts a multiplayer hangman tournament!")
-    async def tournament(self, interaction: discord.Interaction, max: int):
+    async def tournament(self, interaction: discord.Interaction, rounds: int, max_users: int):
         if not self.bot.db.userHasAccount(interaction.user.id):
             return await interaction.response.send_message("You don\'t have an account yet! Create one using `/create-account`!")
-        view = Tournament(max, interaction.user)
-        await interaction.response.send_message("**Hangman Tournament**", view=view)
+        if not interaction.permissions.manage_guild:
+            return await interaction.response.send_message("You need `Manage Server` permissions to run this command!")
+        view = Tournament(max_users, interaction.user)
+        embed = discord.Embed(title="Hangman Tournament", description="Click Play to join!", color=discord.Colour.blurple())
+        embed.add_field(name="Rules", value="1. Whoever wins the hangman game the fastest wins the round.\n2. Click the Play button at the beginning of every round to start game.\n3. If you do not respond for 1 minute, you will automatically lose the game.")
+        embed.set_footer(text="When ready, the host should click Start Game")
+        await interaction.response.send_message(embed=embed, view=view)
         await view.wait()
-        users = view.users
-        msg = "Entered users: "
-        for user in users:
-            msg += f"{user.mention}, "
-        msg.removesuffix(", ")
-        msg += "\nClick below to start the game."
 
-        file = "words/all.txt"
+        embed = discord.Embed(title="Hangman Tournament", description=f"Round 1 starts <t:{int(time.time()) + 10}:R>", color=discord.Colour.blurple())
+        await interaction.edit_original_response(embed=embed, view=None)
+        time.sleep(10)
 
-        # Find number of lines in the file
-        def count_generator(reader):
-            b = reader(1024 * 1024)
-            while b:
-                yield b
-                b = reader(1024 * 1024)
-        with open(file, 'rb') as fp:
-            c_generator = count_generator(fp.raw.read)
-            # count each \n
-            count = sum(buffer.count(b'\n') for buffer in c_generator) + 1
-        word = linecache.getline(file, random.randrange(1, count + 1)).lower()
-        view = TournamentGame(users, word, interaction)
-        embed = view.create_embed()
-        await interaction.edit_original_response(content=msg, embed=embed, view=view)
+        view = TournamentGame(view.users, rounds, interaction)
+        embed = view.create_game_embed()
+        await interaction.edit_original_response(content="", embed=embed, view=view)
         await view.wait()
-        await interaction.edit_original_response(content=view.gameswon[0].mention + " won!")
 
-    @app_commands.command()
+    @app_commands.command(description = "Starts a multiplayer tic-tac-toe game!")
     async def tictactoe(self, interaction: discord.Interaction, opponent: discord.User, bet: int):
         if bet < 0:
             return await interaction.response.send_message("Enter a bet greater than or equal to 0!")

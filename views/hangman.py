@@ -26,7 +26,7 @@ class HangmanModal(discord.ui.Modal):
 
 # View which contains the 4 buttons for the hangman game where one of them triggers a modal implemented in HangmanModal
 class Hangman(discord.ui.View):
-    def __init__(self, user: discord.User):
+    def __init__(self, user: discord.User, add_hints: bool = True):
         super().__init__(timeout=60)
         self.user = user
         self.hint_used = False
@@ -34,6 +34,9 @@ class Hangman(discord.ui.View):
         self.game_quit = False
         self.guessed_letter = None
         self.modal = None
+        if not add_hints:
+            self.remove_item(self.children[2])
+            self.remove_item(self.children[1])
 
     async def interaction_check(self, interaction: discord.Interaction):
         if interaction.user != self.user:

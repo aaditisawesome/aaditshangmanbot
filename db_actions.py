@@ -4,6 +4,7 @@ import os
 import time
 import math
 from dotenv import load_dotenv
+from datetime import datetime, timezone
 
 # Functions which help add, change, or delete any values in the database.
 # They return True if whatever the function is supposed to do works, and False if it doesn't (i.e. if the user does not 
@@ -232,16 +233,25 @@ class MongoDB(MongoClient):
         self.levelsCol.delete_one({"_id": str(userId)})
         return True
 
-    def getRich(self):
+    # type = "coins", "level", or "votes"
+    def getRich(self, type):
         """
-        Gets the top 5 richest players in the bot
+        Gets all sorted players in the bot
 
         Used in the `/rich` command
         """
-        richUsers = {}
-        # sorts coin amounts in descending order
-        sortedUsers = self.currencyCol.find().sort("coins", -1)
-        # adds first five users to richUsers, and return it
-        for i in range(5):
-            richUsers[sortedUsers[i]["_id"]] = sortedUsers[i]["coins"]
-        return richUsers
+        if type == "coins":
+            return list(self.currencyCol.find().sort("coins", -1).hint([("coins", -1)]))
+        elif type == "level":
+            return list(self.levelsCol.find().sort("level", -1).hint([("level", -1)]))
+        elif type == "votes":
+            now = datetime.now(timezone.utc)
+            first_of_month = datetime(now.year, now.month, 1, tzinfo=timezone.utc)
+            first_of_month_epoch = int(first_of_month.timestamp())
+
+            # Find only users whose last_vote is in the current month
+            active_voters = self.settingsCol.find(
+                {"last_vote": {"$gte": first_of_month_epoch}}
+            ).sort("votes", -1).hint([("votes", -1)])
+
+            return list(active_voters)

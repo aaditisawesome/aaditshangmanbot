@@ -6,6 +6,7 @@ import random
 import datetime
 from views.help import *
 from views.levelrewards import *
+from views.leaderboard import *
 from bot import HangmanBot
 
 # Commands which give general info
@@ -49,19 +50,12 @@ class InfoCog(commands.Cog):
         shopEmbed.set_footer(text="More things coming soon!")
         await interaction.response.send_message(embed=shopEmbed)
 
-    @app_commands.command(description = "See the richest people in the bot!")
-    async def rich(self, interaction):
-        hex_number = random.randint(0,16777215)
-        richEmbed = discord.Embed(title="Rich", color=hex_number)
+    @app_commands.command(description = "See the leaderboard for different stats!")
+    async def leaderboard(self, interaction: discord.Interaction):
         await interaction.response.send_message("Getting richest users...")
-        richUsers = self.bot.db.getRich()
-        for user_id in richUsers: 
-                useradd = await self.bot.fetch_user(user_id)
-                leader = "%d: %s" % (list(richUsers.keys()).index(str(user_id)) + 1, useradd.name)
-                embedtext = "%s coins" % (richUsers[user_id])
-                richEmbed.add_field(name=leader, value=embedtext)
-        richEmbed.set_footer(text="Credit for this command goes to CodeMyGame#0923")
-        await interaction.edit_original_response(content = "", embed=richEmbed)  
+        view = Leaderboard(interaction.user, self.bot)
+        embed = await view.create_original_embed()
+        await interaction.edit_original_response(content="", embed=embed, view=view)
 
     @app_commands.command(description = "How you can support the bot by voting!")
     async def vote(self, interaction):
