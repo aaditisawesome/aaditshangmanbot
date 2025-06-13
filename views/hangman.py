@@ -45,7 +45,10 @@ class Hangman(discord.ui.View):
         return True
 
     async def on_timeout(self):
-        self.modal.timed_out = True
+        try:
+            self.modal.timed_out = True
+        except AttributeError:
+            pass
 
     @discord.ui.button(label = "Guess Letter")
     async def guess(self, interaction: discord.Interaction, button: discord.ui.Button):

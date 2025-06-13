@@ -17,7 +17,7 @@ class AccountsCog(commands.Cog):
     async def create_account(self, interaction: discord.Interaction):
         if str(interaction.user.id) in self.bot.blacklisted:
             return await interaction.response.send_message("Sorry, you are blacklisted from this bot, so you cannot create an account!", ephemeral=True)
-        await interaction.response.send_message("Creating account...", ephemeral=True)
+        await interaction.response.defer(thinking=True, ephemeral=True)
         hasAccount = self.bot.db.userHasAccount(interaction.user.id)
         if hasAccount:
             return await interaction.edit_original_response(content = "You already have an account!")
@@ -25,7 +25,7 @@ class AccountsCog(commands.Cog):
         await interaction.edit_original_response(content = "Before creating your hangman account, please read our privacy policy and our terms of service at https://github.com/aaditisawesome/aaditshangmanbot/blob/main/README.md. If you agree to the policy and want to proceed with your account creation, click the `Confirm` button below.", view=view)
         await view.wait()
         if view.confirmed == None:
-            return await interaction.edit_original_response(content = "Interaction has timed out...", view=None)
+            return await interaction.edit_original_response(content = "Interaction has timed out.", view=None)
         if view.confirmed:
             userInitiated = self.bot.db.initiateUser(interaction.user.id)
             if userInitiated == True:
@@ -38,7 +38,7 @@ class AccountsCog(commands.Cog):
 
     @app_commands.command(name = "delete-account", description = "Delete your hangman account :(")
     async def delete_account(self, interaction: discord.Interaction):
-        await interaction.response.send_message("Deleting account...", ephemeral = True)
+        await interaction.response.defer(thinking=True, ephemeral=True)
         hasAccount = self.bot.db.userHasAccount(interaction.user.id)
         if not hasAccount:
             return await interaction.edit_original_response(content = "You don\'t even have an account! Create one using `/create-account`")

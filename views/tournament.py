@@ -32,6 +32,7 @@ class Tournament(discord.ui.View):
         self.users: list[discord.User] = []
         self.author = user
         self.children[0].label = f"Click to join ({self.currentAmt}/{self.max})"
+        self.started = False
 
     @discord.ui.button()
     async def join(self, interaction: discord.Interaction, button: discord.ui.Button):
@@ -52,6 +53,19 @@ class Tournament(discord.ui.View):
         if interaction.user != self.author:
             await interaction.response.send_message("Only the person who started the tournament can start the game", ephemeral=True)
         else:
+            if self.currentAmt < 2:
+                await interaction.response.send_message("There must be at least 2 players to start the game", ephemeral=True)
+                return
+            self.started = True
+            await interaction.response.defer()
+            self.stop()
+    
+    @discord.ui.button(label="Cancel", style=discord.ButtonStyle.red)
+    async def cancel(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if interaction.user != self.author:
+            await interaction.response.send_message("Only the person who started the tournament can cancel the game", ephemeral=True)
+        else:
+            self.started = False
             await interaction.response.defer()
             self.stop()
 
@@ -155,7 +169,7 @@ class TournamentGame(discord.ui.View):
             await interaction.response.send_message("You have already started the game.", ephemeral=True)
             return
 
-        await interaction.response.send_message("Starting Hangman Game...", ephemeral=True)
+        await interaction.response.defer(thinking=True, ephemeral=True)
 
         cl = ""
         wl = ""
@@ -296,6 +310,7 @@ class TournamentGame(discord.ui.View):
         embed = discord.Embed(title=f"Round {self.curround}", description="Hangman Tournament", color=discord.Colour.orange())
         embed.add_field(name="Completed", value=self.completedmsg, inline=False)
         embed.add_field(name="Not Completed", value=self.notcompletedmsg)
+        embed.set_footer(text=f"Round {self.curround} of {self.rounds}")
         return embed
 
     def create_results_embed(self):

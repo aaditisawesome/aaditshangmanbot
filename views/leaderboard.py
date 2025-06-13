@@ -15,10 +15,11 @@ class LeaderboardDropdown(discord.ui.Select):
         super().__init__(options=options, placeholder="Coins")
 
     async def callback(self, interaction: discord.Interaction):
-        await interaction.response.defer(thinking=True)
+        await interaction.response.defer(thinking=True, ephemeral=True)
         self.placeholder = self.values[0].capitalize()
         embed = await self.create_embed(self.values[0], interaction.user)
-        await interaction.edit_original_response(content="", embed=embed, view=self.view)
+        await interaction.message.edit(content="", embed=embed, view=self.view)
+        await interaction.delete_original_response()
 
     async def create_embed(self, type: str, user: discord.User):
         hex_number = random.randint(0, 16777215)

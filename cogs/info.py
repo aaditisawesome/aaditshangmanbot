@@ -21,12 +21,12 @@ class InfoCog(commands.Cog):
     async def help(self, interaction: discord.Interaction):
         hex_number = random.randint(0,16777215)
         embed = discord.Embed(color=hex_number)        
-        embed.title = "Page 1 - How to play hangman using Aadit's Hangman"
-        embed.description = "How can you play hangman using what we have created?"
-        embed.add_field(name="Using the bot (me)!", value="Simply use the </start:1033466791495745577> command after creating an account using </create-account:1033637464356687943>! Invite link: https://dsc.gg/hangman")
-        embed.add_field(name="Using the web app!", value="Visit https://aadits-hangman.herokuapp.com and log in with discord (You don't have to, but then you just won't earn coins)!")
-        embed.add_field(name="Install Python Package!", value="Install the python package from https://pypi.org/project/AaditsHangman/ ! (You will not earn coins)")
-        embed.add_field(name="Support Server", value = "https://discord.gg/CRGE5nF")
+        embed.title = "Page 1 - Getting Started"
+        embed.description = "Welcome to Aadit's Hangman Bot! Here's how to get started."
+        embed.add_field(name="</create-account:1033637464356687943>", value="Create an account to start playing games and earning coins!")
+        embed.add_field(name="/hangman", value="Start a game of hangman after creating your account!")
+        embed.add_field(name="/help", value="View this help menu to learn about all commands")
+        embed.add_field(name="Support Server", value="https://discord.gg/CRGE5nF")
         view = Help(hex_number, interaction.user)
         await interaction.response.send_message(embed=embed, view=view)
 
@@ -52,7 +52,7 @@ class InfoCog(commands.Cog):
 
     @app_commands.command(description = "See the leaderboard for different stats!")
     async def leaderboard(self, interaction: discord.Interaction):
-        await interaction.response.send_message("Getting richest users...")
+        await interaction.response.defer(thinking=True)
         view = Leaderboard(interaction.user, self.bot)
         embed = await view.create_original_embed()
         await interaction.edit_original_response(content="", embed=embed, view=view)

@@ -12,6 +12,7 @@ class MinesweeperButton(discord.ui.Button):
         self.lost = False
 
     async def callback(self, interaction: discord.Interaction):
+        await interaction.response.defer()
         view: Minesweeper = self.view
         if view.flag_mode == True:
             if self.emoji == None:
@@ -21,7 +22,6 @@ class MinesweeperButton(discord.ui.Button):
                 self.label = "‎"
                 self.emoji = None
         elif self.emoji == discord.PartialEmoji.from_str("<:flag:1058556172753436682>"):
-            await interaction.response.defer()
             return
         else:
             self.reveal()
@@ -35,22 +35,42 @@ class MinesweeperButton(discord.ui.Button):
                 await view.flag_mode_message.delete()
         if self.lost:
             await view.flag_mode_message.delete()
-        await interaction.response.edit_message(content=self.message, view=self.view)
+        await interaction.message.edit(content=self.message, view=self.view)
 
     def reveal(self):
         view: Minesweeper = self.view
         if view.mines == None:
-            print("e")
             view.mines = [["", "", "", "", ""], ["", "", "", "", ""], ["", "", "", "", ""], ["", "", "", "", ""], ["", "", "", "", ""]]
-            possible_mines = [] # [[row, column], [row, column]...]
+            
+            # First, mark the clicked cell and its surroundings as safe
+            safe_cells = []
+            for i in range(max(0, self.row - 1), min(5, self.row + 2)):
+                for j in range(max(0, self.column - 1), min(5, self.column + 2)):
+                    safe_cells.append([i, j])
+            
+            # Then, find all possible mine locations (excluding safe cells)
+            possible_mines = []
             for i in range(5):
                 for j in range(5):
-                    if not ((i == self.row - 1 or i == self.row or i == self.row + 1) and (j == self.column - 1 or j == self.column or j == self.column + 1)):
+                    if [i, j] not in safe_cells:
                         possible_mines.append([i, j])
-            for i in range(8):
+            
+            # Place mines ensuring logical solvability
+            mines_placed = 0
+            while mines_placed < 4 and possible_mines:
+                # Choose a random mine location
                 chosen_mine = random.choice(possible_mines)
-                view.mines[chosen_mine[0]][chosen_mine[1]] = "X"
                 possible_mines.remove(chosen_mine)
+                
+                # Create a temporary board with this mine added
+                temp_mines = [row[:] for row in view.mines]  # Deep copy
+                temp_mines[chosen_mine[0]][chosen_mine[1]] = "X"
+                
+                # Only add the mine if it doesn't create an unsolvable situation
+                if not self.would_create_unsolvable_situation(temp_mines, [self.row, self.column]):
+                    view.mines[chosen_mine[0]][chosen_mine[1]] = "X"
+                    mines_placed += 1
+            
             print(view.mines)
         if view.mines[self.row][self.column] == "X":
             self.emoji = discord.PartialEmoji(name = "\U0000274c")
@@ -76,6 +96,64 @@ class MinesweeperButton(discord.ui.Button):
             else:
                 self.emoji = discord.PartialEmoji(name = str(total_mines) + "\U000020e3")
                 self.label = None
+
+    def would_create_unsolvable_situation(self, temp_mines, start_pos):
+        from copy import deepcopy
+        from itertools import product
+
+        def in_bounds(r, c):
+            return 0 <= r < 5 and 0 <= c < 5
+
+        def get_neighbors(r, c):
+            return [(r+dr, c+dc) for dr, dc in product([-1, 0, 1], repeat=2)
+                    if (dr != 0 or dc != 0) and in_bounds(r+dr, c+dc)]
+
+        def generate_number_board(mine_board):
+            board = [[0 for _ in range(5)] for _ in range(5)]
+            for r in range(5):
+                for c in range(5):
+                    if mine_board[r][c] == "X":
+                        board[r][c] = "X"
+                        continue
+                    count = 0
+                    for nr, nc in get_neighbors(r, c):
+                        if mine_board[nr][nc] == "X":
+                            count += 1
+                    board[r][c] = count
+            return board
+
+        def is_solvable_from_start(number_board, start_r, start_c):
+            if number_board[start_r][start_c] == "X":
+                return False  # can't start on a mine
+
+            revealed = [[False] * 5 for _ in range(5)]
+            queue = [(start_r, start_c)]
+            revealed[start_r][start_c] = True
+
+            # Reveal 0 regions and their borders
+            while queue:
+                r, c = queue.pop()
+                if number_board[r][c] == 0:
+                    for nr, nc in get_neighbors(r, c):
+                        if not revealed[nr][nc] and number_board[nr][nc] != "X":
+                            revealed[nr][nc] = True
+                            queue.append((nr, nc))
+
+            # Check if all safe tiles are revealed
+            for r in range(5):
+                for c in range(5):
+                    if number_board[r][c] != "X" and not revealed[r][c]:
+                        return False
+            return True
+
+        # Create number board from mine layout
+        number_board = generate_number_board(temp_mines)
+
+        # Extract start position
+        start_r, start_c = start_pos
+
+        # Return True if board is solvable from start, False if not
+        return is_solvable_from_start(number_board, start_r, start_c)
 
 class Minesweeper(discord.ui.View):
     def __init__(self, user):
@@ -118,7 +196,7 @@ class Minesweeper(discord.ui.View):
             button: MinesweeperButton
             if not button.disabled:
                 total_not_disabled += 1
-        if total_not_disabled <= 8:
+        if total_not_disabled <= 4:
             return True
         return False
 

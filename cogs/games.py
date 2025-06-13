@@ -22,20 +22,19 @@ class GamesCog(commands.Cog):
     async def cog_load(self):
         print("Games commands loaded!")
 
-    @app_commands.command(description = "This command has been replaced with /hangman")
-    async def start(self, interaction: discord.Interaction):
-        await interaction.response.send_message("This command has been replaced with `/hangman`!")
-
     hangman_group = app_commands.Group(name="hangman", description = "Play a hangman game!")
 
     @hangman_group.command(description = "Starts a singleplayer hangman game!")
+    @app_commands.describe(
+        category="The category of words to play with (see /categories)"
+    )
     async def singleplayer(self, interaction: discord.Interaction, category: str = "All"):
         if interaction.user in self.bot.authors:
             if interaction.channel in self.bot.authors[interaction.user]:
                 await interaction.response.send_message("You already have a running hangman game in this channel! Type `quit` to end it.", ephemeral=True)
                 return
 
-        await interaction.response.send_message("Starting hangman game... type \"quit\" anytime to quit.")
+        await interaction.response.defer(thinking=True)
 
         hasAccount = self.bot.db.userHasAccount(interaction.user.id)
         if not hasAccount:
@@ -279,6 +278,10 @@ class GamesCog(commands.Cog):
 
 
     @hangman_group.command(description = "Starts a 2 player hangman game!")
+    @app_commands.describe(
+        opponent="The user to play against",
+        bet="The amount of coins to bet"
+    )
     async def multiplayer(self, interaction: discord.Interaction, opponent: discord.User, bet: int):
         if interaction.user in self.bot.authors:
             if interaction.channel in self.bot.authors[interaction.user]:
@@ -559,11 +562,24 @@ class GamesCog(commands.Cog):
     #     return [app_commands.Choice(name=category, value=category) for category in categories if current.lower() in category.lower()]
 
     @hangman_group.command(description = "Starts a multiplayer hangman tournament!")
+    @app_commands.describe(
+        rounds="Number of rounds in the tournament (max 10)",
+        max_users="Maximum number of users that can join (max 10)"
+    )
     async def tournament(self, interaction: discord.Interaction, rounds: int, max_users: int):
         if not self.bot.db.userHasAccount(interaction.user.id):
             return await interaction.response.send_message("You don\'t have an account yet! Create one using `/create-account`!")
         if not interaction.permissions.manage_guild:
             return await interaction.response.send_message("You need `Manage Server` permissions to run this command!")
+        if(max_users > 10):
+            return await interaction.response.send_message("The maximum number of users that can join is 10!")
+        if(rounds > 10):
+            return await interaction.response.send_message("The maximum number of rounds is 10!")
+        if(rounds < 1):
+            return await interaction.response.send_message("The minimum number of rounds is 1!")
+        if(max_users < 2):
+            return await interaction.response.send_message("The minimum number of users that can join is 2!")
+        
         view = Tournament(max_users, interaction.user)
         embed = discord.Embed(title="Hangman Tournament", description="Click Play to join!", color=discord.Colour.blurple())
         embed.add_field(name="Rules", value="1. Whoever wins the hangman game the fastest wins the round.\n2. Click the Play button at the beginning of every round to start game.\n3. If you do not respond for 1 minute, you will automatically lose the game.")
@@ -571,6 +587,8 @@ class GamesCog(commands.Cog):
         await interaction.response.send_message(embed=embed, view=view)
         await view.wait()
 
+        if not view.started:
+            return await interaction.edit_original_response(content="The tournament has been cancelled", embed=None, view=None)
         embed = discord.Embed(title="Hangman Tournament", description=f"Round 1 starts <t:{int(time.time()) + 10}:R>", color=discord.Colour.blurple())
         await interaction.edit_original_response(embed=embed, view=None)
         time.sleep(10)
@@ -581,6 +599,10 @@ class GamesCog(commands.Cog):
         await view.wait()
 
     @app_commands.command(description = "Starts a multiplayer tic-tac-toe game!")
+    @app_commands.describe(
+        opponent="The user to play against",
+        bet="The amount of coins to bet"
+    )
     async def tictactoe(self, interaction: discord.Interaction, opponent: discord.User, bet: int):
         if bet < 0:
             return await interaction.response.send_message("Enter a bet greater than or equal to 0!")
@@ -640,7 +662,7 @@ class GamesCog(commands.Cog):
             await self.bot.db.addXp(view.not_turn.id, random.randrange(1, 5))
             await self.bot.db.addXp(view.turn.id, random.randrange(1, 5), interaction)
 
-    @app_commands.command()
+    @app_commands.command(description = "Play a game of minesweeper!")
     async def minesweeper(self, interaction: discord.Interaction):
         view = Minesweeper(interaction.user)
         await interaction.response.send_message("Welcome to the minesweeper game! You get 15 coins if you win.\nIf you would like to flag or unflag a square which you know is a mine, you may enable flag mode using the followup message which I sent!", view=view)

@@ -13,8 +13,11 @@ class CurrencyCog(commands.Cog):
         print("Currency commands loaded!")
 
     @app_commands.command(description = "Check how many coins you have!")
+    @app_commands.describe(
+        member="The user to check the balance of (defaults to yourself)"
+    )
     async def balance(self, interaction: discord.Interaction, member: discord.Member = None):
-        await interaction.response.send_message("Counting money...")
+        await interaction.response.defer(thinking=True)
         if member != None:
             items = self.bot.db.getItems(member.id)
             if(len(items) > 0):
@@ -29,9 +32,13 @@ class CurrencyCog(commands.Cog):
                 await interaction.edit_original_response(content = "You don't have an account yet! Create one using `/create-account`!")
     
     @app_commands.command(description = "Buy an item from the shop")
-    async def buy(self, interaction, item: str, amount : int = 1):
+    @app_commands.describe(
+        item="The item to buy (hint or boost)",
+        amount="The amount of items to buy"
+    )
+    async def buy(self, interaction, item: str, amount: int = 1):
         if item == "hint":
-            await interaction.response.send_message("Giving you hint(s)...")
+            await interaction.response.defer(thinking=True)
             try:
                 transactionWorked = self.bot.db.changeItem(interaction.user.id, "coins", -5 * amount)
                 if not transactionWorked:
@@ -42,7 +49,7 @@ class CurrencyCog(commands.Cog):
             except Exception as e:
                 print(e)
         elif item == "boost":
-            await interaction.response.send_message("Giving you a boost...")
+            await interaction.response.defer(thinking=True)
             try:
                 userSettings = self.bot.db.getSettings(interaction.user.id)
                 if userSettings["boost"] > time.time():
@@ -59,8 +66,12 @@ class CurrencyCog(commands.Cog):
             await interaction.response.send_message("That is an invalid item. Please see `/shop`")
 
     @app_commands.command(description = "If you are rich and your friend is poor, you can give them coins")
+    @app_commands.describe(
+        member="The user to give coins to",
+        amount="The amount of coins to give"
+    )
     async def pay(self, interaction, member: discord.Member, amount: int):
-        await interaction.response.send_message("Paying money...")
+        await interaction.response.defer(thinking=True)
         transactionWorked = self.bot.db.changeItem(interaction.user.id, "coins", -1 * amount)
         if not transactionWorked:
             await interaction.edit_original_response(content = "You either don't have that many coins, or you don't have an account. Create an account using `/create-account.`")
