@@ -73,7 +73,9 @@ class MongoDB(MongoClient):
             "boost": 0,
             "tips": True,
             "vote_reminders": True,
-            "categories": []
+            "categories": [],
+            "votes": 0,
+            "last_vote": 0
         }
         # default values for user settings
         levelsData = {
@@ -119,12 +121,21 @@ class MongoDB(MongoClient):
             "boost": 0,
             "tips": True,
             "vote_reminders": True,
-            "categories": []
+            "categories": [],
+            "votes": 0,
+            "last_vote": 0
         }
+
+        if self.userHasAccount(userId) and userData == None:
+            self.settingsCol.insert_one(default_settings)
+            userData = default_settings
+        elif userData == None:
+            return None
+
         for setting in default_settings:
             if setting not in userData:
+                userData[setting] = default_settings[setting]
                 self.settingsCol.update_one({"_id": str(userId)}, {"$set": {setting: default_settings[setting]}}, upsert = True)
-        userData = self.settingsCol.find_one({"_id": str(userId)})
         return userData
     
     def getLevels(self, userId: int) -> dict | None:
@@ -135,7 +146,7 @@ class MongoDB(MongoClient):
         """
 
         userData = self.levelsCol.find_one({"_id": str(userId)})
-        # will return None if user doesn't have account
+        # will return None if user doesn't have accoun
         return userData
     
     def changeSetting(self, userId: int, setting: str, newValue) -> bool:
