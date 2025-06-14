@@ -25,7 +25,8 @@ class LeaderboardDropdown(discord.ui.Select):
         hex_number = random.randint(0, 16777215)
         richEmbed = discord.Embed(title=f"{type.capitalize()} Leaderboard", color=hex_number)
         if type == "votes":
-            richEmbed.description = "Votes are counted from the [top.gg](https://top.gg/bot/748670819156099073), resetting every month."
+            print("e")
+            richEmbed.set_footer(text="Use /vote to vote\nVotes reset every month")
 
         sortedUsers = HangmanBot().db.getRich(type)  # Now a sorted list of full user entries
         msg = ""
