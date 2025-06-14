@@ -63,13 +63,14 @@ class Help(discord.ui.View):
             embed.description = "Welcome to Aadit's Hangman Bot! Here's how to get started."
             embed.add_field(name="</create-account:1033637464356687943>", value="Create an account to start playing games and earning coins!")
             embed.add_field(name="/hangman", value="Start a game of hangman after creating your account!")
-            embed.add_field(name="/help", value="View this help menu to learn about all commands")
+            embed.add_field(name="/help", value="View this help menu to learn about all commands.")
+            embed.add_field(name="/vote", value="Vote for the bot to support us and earn rewards!")
             embed.add_field(name="Support Server", value="https://discord.gg/CRGE5nF")
         elif self.current_page == 2:
             embed.title = "Page 2 - Game Commands"
             embed.description = "All the games you can play to earn coins!"
             embed.add_field(name="/hangman (singleplayer | multiplayer)", value="Play hangman! Singleplayer wins earn 7 coins. Multiplayer can be disabled in settings.")
-            embed.add_field(name="/hangman tournament", value="Start a tournament with up to 20 players!")
+            embed.add_field(name="/hangman tournament", value="Start a tournament with up to 10 players!")
             embed.add_field(name="/minesweeper", value="Play minesweeper! Wins earn 15 coins.")
             embed.add_field(name="/tictactoe", value="Bet coins against other users in tic-tac-toe!")
             embed.add_field(name="/categories", value="View all available word categories and their rewards")
