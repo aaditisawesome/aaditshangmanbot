@@ -42,15 +42,12 @@ class CurrencyCog(commands.Cog):
         item: str,
         amount: int = 1
     ):
+        await interaction.response.defer(thinking=True)
         if item == "hint":
-            if (amount < 1):
-                await interaction.response.send_message(
-                    content = "You can't buy negative hints!",
-                    ephemeral = True
-                )
-                return
-
-            await interaction.response.defer(thinking=True)
+            if (amount < 0):
+                return await interaction.edit_original_response(content = "You can't buy negative hints!")
+            if amount == 0:
+                return await interaction.edit_original_response(content = "You can't buy 0 hints!")
             try:
                 transactionWorked = self.bot.db.changeItem(interaction.user.id, "coins", -5 * amount)
                 if not transactionWorked:
@@ -61,7 +58,6 @@ class CurrencyCog(commands.Cog):
             except Exception as e:
                 print(e)
         elif item == "boost":
-            await interaction.response.defer(thinking=True)
             try:
                 userSettings = self.bot.db.getSettings(interaction.user.id)
                 if userSettings["boost"] > time.time():
