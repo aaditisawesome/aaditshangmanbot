@@ -36,8 +36,18 @@ class CurrencyCog(commands.Cog):
         item="The item to buy (hint or boost)",
         amount="The amount of items to buy"
     )
-    async def buy(self, interaction, item: str, amount: int = 1):
+    async def buy(
+        self,
+        interaction: discord.Interaction,
+        item: str,
+        amount: int = 1
+    ):
         if item == "hint":
+            if (amount < 1):
+                return await interaction.edit_original_response(
+                    content = "You can't buy negative hints!"
+                )
+
             await interaction.response.defer(thinking=True)
             try:
                 transactionWorked = self.bot.db.changeItem(interaction.user.id, "coins", -5 * amount)
