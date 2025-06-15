@@ -36,9 +36,18 @@ class CurrencyCog(commands.Cog):
         item="The item to buy (hint or boost)",
         amount="The amount of items to buy"
     )
-    async def buy(self, interaction, item: str, amount: int = 1):
+    async def buy(
+        self,
+        interaction: discord.Interaction,
+        item: str,
+        amount: int = 1
+    ):
+        await interaction.response.defer(thinking=True)
         if item == "hint":
-            await interaction.response.defer(thinking=True)
+            if (amount < 0):
+                return await interaction.edit_original_response(content = "You can't buy negative hints!")
+            if amount == 0:
+                return await interaction.edit_original_response(content = "You can't buy 0 hints!")
             try:
                 transactionWorked = self.bot.db.changeItem(interaction.user.id, "coins", -5 * amount)
                 if not transactionWorked:
@@ -49,7 +58,6 @@ class CurrencyCog(commands.Cog):
             except Exception as e:
                 print(e)
         elif item == "boost":
-            await interaction.response.defer(thinking=True)
             try:
                 userSettings = self.bot.db.getSettings(interaction.user.id)
                 if userSettings["boost"] > time.time():
