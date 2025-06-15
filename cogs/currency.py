@@ -44,9 +44,11 @@ class CurrencyCog(commands.Cog):
     ):
         if item == "hint":
             if (amount < 1):
-                return await interaction.edit_original_response(
-                    content = "You can't buy negative hints!"
+                await interaction.response.send_message(
+                    content = "You can't buy negative hints!",
+                    ephemeral = True
                 )
+                return
 
             await interaction.response.defer(thinking=True)
             try:
