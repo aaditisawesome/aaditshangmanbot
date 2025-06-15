@@ -272,8 +272,9 @@ class GamesCog(commands.Cog):
     async def hangman_autocomplete(self, interaction: discord.Interaction, current: str):
         userSettings = self.bot.db.getSettings(interaction.user.id)
         categories = ["All"]
-        if "categories" in userSettings:
-            categories += userSettings["categories"]
+        if userSettings != None:
+            if "categories" in userSettings:
+                categories += userSettings["categories"]
         return [app_commands.Choice(name=category, value=category) for category in categories if current.lower() in category.lower()]
 
 
