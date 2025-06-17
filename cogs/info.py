@@ -64,7 +64,7 @@ class InfoCog(commands.Cog):
         voteEmbed.add_field(name="2 saves + xp each vote", value="[top.gg](https://top.gg/bot/748670819156099073)\n[DBL](https://discord.ly/aadits-audits-hangman-bot)")
         voteEmbed.add_field(name="Other bot lists", value="[discord.bots.gg](https://discord.bots.gg/bots/748670819156099073)\n[BOD](https://bots.ondiscord.xyz/bots/748670819156099073)")
         voteEmbed.add_field(name="Vote for our server!", value="[top.gg](https://top.gg/servers/748672765837705337)")
-        voteEmbed.timestamp = datetime.datetime.now()
+        voteEmbed.timestamp = datetime.now()
         voteEmbed.set_footer(text="Thank you so much for voting!")
         await interaction.response.send_message(embed=voteEmbed)
 
