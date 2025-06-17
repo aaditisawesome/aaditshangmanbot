@@ -34,9 +34,9 @@ class InfoCog(commands.Cog):
     async def ping(self, interaction: discord.Interaction):
         # await interaction.response.send_message("Pong! `" + str(bot.latency * 1000) + "ms`")
         interaction_creation = interaction.created_at.replace(tzinfo=None).timestamp() * 1000
-        received_time = datetime.datetime.utcnow().timestamp() * 1000
+        received_time = datetime.utcnow().timestamp() * 1000
         await interaction.response.send_message(f"API Latency: `{round(self.bot.latency * 1000, 2)}ms`\nPing: `{round(received_time - interaction_creation, 2)}ms`")
-        respond_time = datetime.datetime.utcnow().timestamp() * 1000
+        respond_time = datetime.utcnow().timestamp() * 1000
         await interaction.edit_original_response(content=f"API Latency: `{round(self.bot.latency * 1000, 2)}ms`\nPing: `{round(received_time - interaction_creation, 2)}ms`\nLatency: `{round(respond_time - interaction_creation, 2)}ms`")
 
     @app_commands.command(description = "States what you can buy with your coins")
@@ -46,7 +46,7 @@ class InfoCog(commands.Cog):
         shopEmbed.add_field(name="Hints", value="**Cost**: 5 coins\n**How to buy:** `/buy hint`\n**How to use:** When you are in the middle of a game, type \"hint\" instead of a letter to use.\n**Effects:** Reveals one letter of the word for you!")
         shopEmbed.add_field(name="Boost", value="**Cost**: 15 coins\n**How to buy:** `/buy boost`\n**How to use:** Automatically used when you buy it\n**Effects:** Doubles the amount of coins you get from winning hangman games for an hour!")
         shopEmbed.add_field(name="Saves", value="**Cost**: Can only be obtained by [giveaways](https://discord.gg/CRGE5nF) or by voting (see `/vote`)\n**How to use:** When you are in the middle of a game, type \"save\" instead of a letter to use.\n**Effects:** Gives you an extra try!!")
-        shopEmbed.timestamp = datetime.datetime.now()
+        shopEmbed.timestamp = datetime.now()
         shopEmbed.set_footer(text="More things coming soon!")
         await interaction.response.send_message(embed=shopEmbed)
 
