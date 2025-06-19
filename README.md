@@ -14,8 +14,8 @@
 
 
 ## Other info
-If you have any other questions or concerns, please visit https://discord.gg/CRGE5nF
+If you have any other questions or concerns, please visit [our support server](https://discord.gg/CRGE5nF).
 
 [![Discord Bots](https://top.gg/api/widget/748670819156099073.svg)](https://top.gg/bot/748670819156099073)
 
-BOT INVITE LINK: https://discord.com/oauth2/authorize?client_id=748670819156099073&scope=bot&permissions=19456 
+[BOT INVITE LINK](https://discord.com/api/oauth2/authorize?client_id=748670819156099073&permissions=27648&redirect_uri=https%3A%2F%2Fdiscord.gg%2FCRGE5nF&response_type=code&scope=bot%20identify)
