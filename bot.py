@@ -71,6 +71,17 @@ class HangmanBot(commands.Bot):
     async def on_app_command_completion(self, interaction: discord.Interaction, command: discord.app_commands.Command):
         if str(interaction.user.id) in self.blacklisted:
             return
+        
+        # Track analytics
+        owner_cog = self.get_cog("OwnerCog")
+        if owner_cog:
+            owner_cog.track_command(command.name)
+            owner_cog.track_user_activity(interaction.user.id)
+            
+            # Track specific game types
+            if command.name in ["hangman", "tictactoe", "minesweeper"]:
+                owner_cog.track_game_played(command.name)
+        
         sendTip = random.randrange(1, 12)
         if (sendTip == 1):
             if (not self.db.userHasAccount(interaction.user.id) or not self.db.getSettings(interaction.user.id)["tips"]): 
@@ -80,5 +91,5 @@ class HangmanBot(commands.Bot):
     async def on_command_error(self, ctx: commands.Context, error: commands.CommandError) -> None:
         try:
             raise error
-        except commands.errors.CommandNotFound:
+        except (commands.errors.CommandNotFound, commands.errors.CheckFailure):
             pass
