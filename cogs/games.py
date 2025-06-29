@@ -24,6 +24,267 @@ class GamesCog(commands.Cog):
 
     hangman_group = app_commands.Group(name="hangman", description = "Play a hangman game!")
 
+    async def play_hangman(self, interaction: discord.Interaction, word: str, category: str, tries: int, 
+                          players: list[discord.User], current_turn: discord.User, bet: int = 0, 
+                          add_hints: bool = True, using_view: bool = True):
+        """Shared function for playing hangman games
+        
+        Args:
+            interaction: The interaction that started the game
+            word: The word to guess
+            category: The category of the word
+            tries: Number of tries allowed
+            players: List of players in the game
+            current_turn: The player whose turn it is
+            bet: Amount of coins bet (0 for singleplayer)
+            add_hints: Whether hints and saves are allowed
+            using_view: Whether to use the button view
+        """
+        cl = ""  # Correct letters
+        wl = ""  # Wrong letters
+        pic = "hangman-0.png"
+        
+        # Create initial embed
+        embed = discord.Embed(title = " vs ".join([p.name for p in players]) if len(players) > 1 else f"{players[0].name}'s hangman game")
+        
+        # Add game mechanics based on mode
+        if len(players) > 1:
+            mechanics = "\n- Guess letters\n- The turn switches when you enter a wrong guess\n- Whoever completes the word wins\n- Enter \"quit\" to quit the game\n- You have 1 minute to respond"
+        else:
+            mechanics = "Guess letters\n- Enter \"hint\" to reveal a letter\n- Enter \"save\" to get an extra try\n- Enter \"quit\" to quit the game\n- The game times out if you don't send anything for 1 minute"
+        embed.add_field(name = "GAME MECHANICS:", value = mechanics)
+        
+        embed.add_field(name = "Category", value = category)
+        if len(players) > 1:
+            embed.add_field(name = "Current Turn", value = current_turn.mention)
+        embed.add_field(name = "Wrong Letters:", value = "None", inline = False)
+        
+        # Create word display
+        value = ""
+        for i in range(len(word)):
+            if word[i] == "\n" or word[i] == " ":
+                value += "  "
+            else:
+                value += "\_ "
+        embed.add_field(name = "Word:", value = value, inline = True)
+        embed.add_field(name = "Wrong Tries Left:", value = tries)
+
+        file = discord.File("hangman-pics/" + pic, filename=pic)
+        embed.set_image(url=f"attachment://{pic}")
+        embed.set_footer(text = "Please enter your next guess" + (" (or \"hint\"/\"save\"/\"quit\")" if add_hints else " (or \"quit\")."))
+
+        # Send initial message
+        if not using_view:
+            await interaction.edit_original_response(content = "" if len(players) == 1 else f"It is currently {current_turn.mention}'s turn", 
+                                                   attachments = [file], embed=embed)
+        else:
+            view = Hangman(current_turn, add_hints)
+            await interaction.edit_original_response(content = "" if len(players) == 1 else f"It is currently {current_turn.mention}'s turn", 
+                                                   attachments = [file], embed=embed, view=view)
+        embed.clear_fields()
+
+        def check(m: discord.Message):
+            return m.author in players and m.channel == interaction.channel
+
+        while True:
+            if not using_view:
+                try:
+                    guess: discord.Message = await self.bot.wait_for("message", timeout = 60.0, check=check)
+                except asyncio.TimeoutError:
+                    if len(players) > 1:
+                        not_turn = players[0] if current_turn == players[1] else players[1]
+                        self.bot.db.changeItem(current_turn.id, "coins", -1 * bet)
+                        self.bot.db.changeItem(not_turn.id, "coins", bet)
+                        await self.bot.db.addXp(not_turn.id, random.randrange(5, 15), interaction)
+                        await interaction.edit_original_response(content = f"{current_turn.name} did not respond in time, and they lose!", 
+                                                                attachments = [], embed = None)
+                    else:
+                        await interaction.edit_original_response(content = "The game has timed out. Please start a new game with `/hangman`.", 
+                                                                attachments = [], embed = None)
+                    break
+                
+                if len(players) > 1 and guess.author != current_turn:
+                    continue
+                    
+                try:
+                    await guess.delete()
+                except discord.Forbidden:
+                    pass
+                guess_content = str(guess.content.lower())
+            else:
+                await view.wait()
+                if view.guessed_letter is not None:
+                    guess_content = view.guessed_letter.lower()
+                elif view.hint_used and add_hints:
+                    guess_content = "hint"
+                elif view.save_used and add_hints:
+                    guess_content = "save"
+                elif view.game_quit:
+                    guess_content = "quit"
+                else:
+                    if len(players) > 1:
+                        not_turn = players[0] if current_turn == players[1] else players[1]
+                        self.bot.db.changeItem(current_turn.id, "coins", -1 * bet)
+                        self.bot.db.changeItem(not_turn.id, "coins", bet)
+                        await self.bot.db.addXp(not_turn.id, random.randrange(5, 15), interaction)
+                        await interaction.edit_original_response(content = f"{current_turn.name} did not respond in time, and they lose!", 
+                                                                attachments = [], embed = None, view=None)
+                    else:
+                        await interaction.edit_original_response(content = "The game has timed out. Please start a new game with `/hangman`.", 
+                                                                attachments = [], embed = None, view=None)
+                    break
+
+            if guess_content == "quit":
+                await interaction.edit_original_response(content = "Thanks for playing! You have quit the game.", 
+                                                        attachments = [], embed = None, view = None)
+                break
+            elif guess_content == "hint" and add_hints:
+                await interaction.edit_original_response(content = "Please give me a moment", attachments = [], embed = None)
+                try:
+                    changeWorked = self.bot.db.changeItem(interaction.user.id, "hints", -1)
+                    if not changeWorked:
+                        embed.clear_fields()
+                        embed.color = discord.Colour.red()
+                        embed.add_field(name = "Hint unsuccessful", 
+                                        value = "You don't have any hints! They cost 5 coins each! You can buy hints using `/buy hint [amount]`!")
+                    else:
+                        for letter in word:
+                            if letter not in cl:
+                                cl = cl + letter
+                                break
+                        embed.clear_fields()
+                        embed.color = discord.Colour.yellow()
+                        embed.add_field(name = "Hint Used", 
+                                        value = "👌 One hint has been consumed, and a letter has been revealed for you!")
+                except Exception as e:
+                    print(e)
+            elif guess_content == "save" and add_hints:
+                await interaction.edit_original_response(content = "Please give me a moment", attachments = [], embed = None)
+                changeWorked = self.bot.db.changeItem(interaction.user.id, "saves", -1)
+                if not changeWorked:
+                    embed.clear_fields()
+                    embed.color = discord.Colour.red()
+                    embed.add_field(name = "Save Unsuccessful", 
+                                    value = "You don\'t have any saves! You earn saves by voting for our bot with `/vote`, or winning giveaways in https://discord.gg/CRGE5nF !")
+                else:
+                    tries += 1
+                    pic = "hangman-" + str(9 - tries) + ".png"
+                    embed.clear_fields()
+                    embed.color = discord.Colour.yellow()
+                    embed.add_field(name = "Save Used", value = "👌 You now have an extra try!")
+            elif len(guess_content) != 1:
+                embed.clear_fields()
+                embed.color = discord.Colour.orange()
+                embed.add_field(name = "Guess Unsuccessful", value = "You can only guess one letter at a time!")
+            elif guess_content not in "abcdefghijklmnopqrstuvwxyz":
+                embed.clear_fields()
+                embed.color = discord.Colour.orange()
+                embed.add_field(name = "Guess Unsuccessful", value = "Your guess must be in the alphabet!")
+            elif guess_content in cl or guess_content in wl:
+                embed.clear_fields()
+                embed.color = discord.Colour.orange()
+                embed.add_field(name = "Guess Unsuccessful", value = "You have already guessed this letter!")
+            elif guess_content in word: # Guess is correct
+                cl += guess_content
+                embed.clear_fields()
+                embed.color = discord.Colour.dark_green()
+                embed.add_field(name = "✅ Guess Correct!", value = guess_content + " is in the word!")
+            else: # Guess is wrong                
+                tries -= 1
+                wl += guess_content + " "
+                pic = "hangman-" + str(9 - tries) + ".png"
+                embed.clear_fields()
+                embed.color = discord.Colour.red()
+                embed.add_field(name = "🔴 Guess Wrong", value = guess_content + " is not in the word :( !")
+                if len(players) > 1:
+                    current_turn = players[0] if current_turn == players[1] else players[1]
+            
+            # Update word display
+            cl_txt = ""
+            for letter in word:
+                if letter in cl:
+                    cl_txt += letter + " "
+                elif letter == "\n" or letter == " ":
+                    cl_txt += "  "
+                else:
+                    cl_txt += "\_ "
+
+            # Check win/loss conditions
+            if "_" not in cl_txt:
+                embed.clear_fields()
+                if len(players) > 1:
+                    embed.title = f":tada: {current_turn.name} won the hangman game! :tada:"
+                    not_turn = players[0] if current_turn == players[1] else players[1]
+                    embed.add_field(name = f":tada: {current_turn.name} Won! :tada:", 
+                                    value = f"{current_turn.name} won {bet} coins, while {not_turn.name} lost {bet} coins!")
+                    self.bot.db.changeItem(current_turn.id, "coins", bet)
+                    self.bot.db.changeItem(not_turn.id, "coins", -1 * bet)
+                    await self.bot.db.addXp(current_turn.id, random.randrange(15, 30), interaction)
+                    await self.bot.db.addXp(not_turn.id, random.randrange(5, 15), interaction)
+                else:
+                    embed.title = f":tada: {current_turn.name} won the hangman game! :tada:"
+                    userSettings = self.bot.db.getSettings(current_turn.id)
+                    prize = 7 if category.lower() in ["all", "objects"] else 6 if category.lower() == "animals" else 4
+                    if time.time() - userSettings["boost"] <= 3600:
+                        prize *= 2
+                    embed.add_field(name = ":tada: You Won! :tada:", 
+                                    value = f"You got {prize} coins, good job!")
+                    self.bot.db.changeItem(current_turn.id, "coins", prize)
+                    await self.bot.db.addXp(current_turn.id, random.randrange(15, 30), interaction)
+                embed.set_footer(text = "Thanks for playing!")
+            elif tries == 0:
+                embed.clear_fields()
+                if len(players) > 1:
+                    embed.title = "👎 You both ran out of tries! 👎"
+                else:
+                    embed.title = f"👎 {current_turn.name} lost the hangman game! 👎"
+                embed.color = discord.Colour.dark_red()
+                embed.add_field(name = "🔴 You Lost!", value = "The word was ||" + word + "||")
+                embed.set_footer(text = "Please try again!")
+
+            # Update embed fields
+            embed.add_field(name = "Category:", value = category)
+            if len(players) > 1:
+                embed.add_field(name = "Current Turn", value = current_turn.mention)
+            if wl == "":
+                embed.add_field(name = "Wrong Letters:", value = "None", inline = False)
+            else:
+                embed.add_field(name = "Wrong Letters:", value = wl, inline = False)
+            embed.add_field(name = "Word:", value = cl_txt)
+            embed.add_field(name = "Wrong tries left:", value = tries)
+            
+            if tries > 9:
+                pic = "hangman-0.png"
+            file = discord.File("hangman-pics/" + pic, filename=pic)
+            embed.set_image(url = f"attachment://{pic}")
+            
+            if "_" in cl_txt and tries != 0:
+                embed.set_footer(text = "Please enter your next guess" + 
+                                (" (or \"hint\"/\"save\"/\"quit\")" if add_hints else " (or \"quit\")."))
+
+            # Update message
+            if using_view:
+                if "_" not in cl_txt or tries == 0:
+                    await interaction.edit_original_response(content = "" if len(players) == 1 else f"It is currently {current_turn.mention}'s turn", 
+                                                            attachments = [file], embed=embed, view=None)
+                else:
+                    view = Hangman(current_turn, add_hints)
+                    await interaction.edit_original_response(content = "" if len(players) == 1 else f"It is currently {current_turn.mention}'s turn", 
+                                                            attachments = [file], embed=embed, view=view)
+            else:
+                await interaction.edit_original_response(content = "" if len(players) == 1 else f"It is currently {current_turn.mention}'s turn", 
+                                                        attachments = [file], embed=embed)
+
+            if "_" not in cl_txt or tries == 0:
+                break
+
+        # Clean up authors
+        for player in players:
+            if len(self.bot.authors[player]) > 1:
+                self.bot.authors[player].remove(interaction.channel)
+            else:
+                self.bot.authors.pop(player)
+
     @hangman_group.command(description = "Starts a singleplayer hangman game!")
     @app_commands.describe(
         category="The category of words to play with (see /categories)"
@@ -51,223 +312,20 @@ class GamesCog(commands.Cog):
         else:
             self.bot.authors[interaction.user].append(interaction.channel)
 
-        def check(m):
-            return m.author == interaction.user and m.channel == interaction.channel
-
         file = f"words/{category.lower()}.txt"
-
-        # Find number of lines in the file
-        def count_generator(reader):
-            b = reader(1024 * 1024)
-            while b:
-                yield b
-                b = reader(1024 * 1024)
-        with open(file, 'rb') as fp:
-            c_generator = count_generator(fp.raw.read)
-            # count each \n
-            count = sum(buffer.count(b'\n') for buffer in c_generator) + 1
-
-        if category.lower() == "all" or category.lower() == "objects":
-            prize = 7
-        elif category.lower() == "animals":
-            prize = 6
-        else:
-            prize = 4
-
-        cl = ""
-        wl = ""
-        tries = 9
-        pic = "hangman-0.png"
-        word = linecache.getline(file, random.randrange(1, count + 1)).lower()
-        usingView = userSettings["hangman_buttons"]
-        embed = discord.Embed(title = interaction.user.name + "'s hangman game")
-        print(word)
-
-        embed.add_field(name = "GAME MECHANICS:", value = "Guess letters\n- Enter \"hint\" to reveal a letter\n- Enter \"save\" to get an extra try\n- Enter \"quit\" to quit the game\n- The game times out if you don't send anything for 1 minute")
-        embed.add_field(name = "Category", value = category)
-        embed.add_field(name = "Wrong Letters:", value = "None", inline = False)
-        value = ""
-        for i in range(len(word)):
-            print(word[i] == "\n" or word[i] == " ")
-            if word[i] == "\n" or word[i] == " ":
-                value += "  "
-            else:
-                value += "\_ "
-        print(value)
-        embed.add_field(name = "Word:", value = value, inline = True)
-        embed.add_field(name = "Wrong Tries Left:", value = tries)
-
-        file = discord.File("hangman-pics/" + pic, filename=pic)
-        embed.set_image(url=f"attachment://{pic}")
-        embed.set_footer(text = "Please enter your next guess. (or \"hint\"/\"save\"/\"quit\")")
-
-        if not usingView:
-            await interaction.edit_original_response(content = "", attachments = [file], embed=embed)
-        else:
-            view = Hangman(interaction.user)
-            await interaction.edit_original_response(content = "", attachments = [file], embed=embed, view=view)
-        embed.clear_fields()
-
-        while True:
-            try:
-                if not usingView:
-                    try:
-                        guess: discord.Message = await self.bot.wait_for("message", timeout = 60.0, check=check)
-                    except asyncio.TimeoutError:
-                        await interaction.edit_original_response(content = "The game has timed out. Please start a new game with `/hangman` .", attachments = [], embed = None)
-                        break
-                    try:
-                        await guess.delete()
-                    except discord.Forbidden:
-                        pass
-                    guess_content = str(guess.content.lower())
-                    print(guess)
-                    print(guess_content)
-                else:
-                    await view.wait()
-                    if view.guessed_letter is not None:
-                        guess_content = view.guessed_letter.lower()
-                    elif view.hint_used:
-                        guess_content = "hint"
-                    elif view.save_used:
-                        guess_content = "save"
-                    elif view.game_quit:
-                        guess_content = "quit"
-                    else:
-                        await interaction.edit_original_response(content = "The game has timed out. Please start a new game with `/hangman` .", attachments = [], embed = None, view=None)
-                        break
-
-                if guess_content == "quit":
-                    await interaction.edit_original_response(content = ("Thanks for playing! You have quit the game."), attachments = [], embed = None, view = None)
-                    break
-                elif guess_content == "hint":
-                    await interaction.edit_original_response(content = ("Please give me a moment"), attachments = [], embed = None)
-                    try:
-                        changeWorked = self.bot.db.changeItem(interaction.user.id, "hints", -1)
-                        if not changeWorked:
-                            embed.clear_fields()
-                            embed.color = discord.Colour.red()
-                            embed.add_field(name = "Hint unsuccessful", value = "You don't have any hints! They cost 5 coins each! You can buy hints using `/buy hint [amount]`!")
-                        else:
-                            for letter in word:
-                                if letter not in cl:
-                                    cl = cl + letter
-                                    break
-                                letter = letter
-                            embed.clear_fields()
-                            embed.color = discord.Colour.yellow()
-                            embed.add_field(name = "Hint Used", value = "👌 One hint has been consumed, and a letter has been revealed for you!")
-                    except Exception as e:
-                        print(e)
-                elif guess_content == "save":
-                    await interaction.edit_original_response(content = ("Please give me a moment"), attachments = [], embed = None)
-                    changeWorked = self.bot.db.changeItem(interaction.user.id, "saves", -1)
-                    if not changeWorked:
-                        embed.clear_fields()
-                        embed.color = discord.Colour.red()
-                        embed.add_field(name = "Save Unsuccessful", value = "You don\'t have any saves! You earn saves by voting for our bot with `/vote`, or winning giveaways in https://discord.gg/CRGE5nF !")
-                    else:
-                        tries += 1
-                        pic = "hangman-" + str(9 - tries) + ".png"
-                        embed.clear_fields()
-                        embed.color = discord.Colour.yellow()
-                        embed.add_field(name = "Save Used", value = "👌 You now have an extra try!")
-                elif len(guess_content) != 1:
-                    embed.clear_fields()
-                    embed.color = discord.Colour.orange()
-                    embed.add_field(name = "Guess Unsuccessful", value = "You can only guess one letter at a time!")
-                elif guess_content not in "abcdefghijklmnopqrstuvwxyz":
-                    embed.clear_fields()
-                    embed.color = discord.Colour.orange()
-                    embed.add_field(name = "Guess Unsuccessful", value = "Your guess must be in the alphabet!")
-                elif guess_content in cl or guess_content in wl:
-                    embed.clear_fields()
-                    embed.color = discord.Colour.orange()
-                    embed.add_field(name = "Guess Unsuccessful", value = "You have already guessed this letter!")
-                elif guess_content in word: # Guess is correct
-                    cl += guess_content
-                    embed.clear_fields()
-                    embed.color = discord.Colour.dark_green()
-                    embed.add_field(name = "✅ Guess Correct!", value = guess_content + " is in the word!")
-                else: # Guess is wrong                
-                    tries -= 1
-                    wl += guess_content + " "
-                    pic = "hangman-" + str(9 - tries) + ".png"
-                    embed.clear_fields()
-                    embed.color = discord.Colour.red()
-                    embed.add_field(name = "🔴 Guess Wrong", value = guess_content + " is not in the word :( !")
-                    print(word)
-                
-                # Outputting wrong and correct letters
-                cl_txt = ""
-                for letter in word:
-                    if letter in cl:
-                        cl_txt += letter + " "
-                    elif letter == "\n" or letter == " ":
-                        cl_txt += "  "
-                    else:
-                        cl_txt += "\_ "
-                if "_" not in cl_txt:
-                    embed.clear_fields()
-                    embed.title = ":tada: " + interaction.user.name + " won the hangman game! :tada:"
-                    userSettings = self.bot.db.getSettings(interaction.user.id)
-                    embed.color = discord.Colour.brand_green()
-                    if(time.time() - userSettings["boost"] <= 3600):
-                        embed.add_field(name = ":tada: You Won! :tada:", value = f"Since you have a boost running, you got {prize * 2} coins! Good job!")
-                    else:
-                        embed.add_field(name = ":tada: You Won! :tada:", value = f"You got {prize} coins, good job!")
-                    embed.set_footer(text = "Thanks for playing!")
-                    if not interaction.app_permissions.manage_messages:
-                        embed.set_footer(text="If you give me the \"Manage Messages\" permission, I will be able to delete the messages so you don't need to keep scrolling up!")
-                elif tries == 0:
-                    embed.clear_fields()
-                    embed.color = discord.Colour.dark_red()
-                    embed.title = "👎 " + interaction.user.name + " lost the hangman game! 👎"
-                    embed.add_field(name = "🔴 You Lost!", value = "The word was ||" + word + "||")
-                    embed.set_footer(text = "Please try again!")
-                embed.add_field(name = "Category:", value = category)
-                if wl == "":
-                    embed.add_field(name = "Wrong Letters:", value = "None", inline = False)
-                else:
-                    embed.add_field(name = "Wrong Letters:", value = wl, inline = False)
-                print(cl_txt)
-                embed.add_field(name = "Word:", value = cl_txt)
-                embed.add_field(name = "Wrong tries left:", value = tries)
-                if tries > 9: # If there are more than 9 tries left (due to saves)
-                    pic = "hangman-0.png"
-                file = discord.File("hangman-pics/" + pic, filename=pic)
-                embed.set_image(url = f"attachment://{pic}")
-                if "_" in cl_txt and tries != 0:
-                    embed.set_footer(text = "Please enter your next guess. (or \"hint\"/\"save\"/\"quit\")")
-                if usingView:
-                    if "_" not in cl_txt or tries == 0:
-                        await interaction.edit_original_response(content = "", attachments = [file], embed=embed, view=None)
-                    else:
-                        view = Hangman(interaction.user)
-                        await interaction.edit_original_response(content = "", attachments = [file], embed=embed, view=view)
-                else:
-                    await interaction.edit_original_response(content = "", attachments = [file], embed=embed)
-                if "_" not in cl_txt:
-                    if(time.time() - userSettings["boost"] <= 3600):
-                        self.bot.db.changeItem(interaction.user.id, "coins", prize * 2)
-                    else:
-                        self.bot.db.changeItem(interaction.user.id, "coins", prize)
-                    await self.bot.db.addXp(interaction.user.id, random.randrange(15, 30), interaction)
-                    break
-                elif tries == 0:
-                    break
-            except Exception as e:
-                await interaction.edit_original_response(content = ("OOF! There was an error... DM <@697628625150803989> with this error: `" + str(e) + "`"), attachments = [], embed = None, view=None)
-                if len(self.bot.authors[interaction.user]) > 1:
-                    self.bot.authors[interaction.user].remove(interaction.channel)
-                else:
-                    self.bot.authors.pop(interaction.user)
-                raise e
-        if len(self.bot.authors[interaction.user]) > 1:
-            self.bot.authors[interaction.user].remove(interaction.channel)
-        else:
-            self.bot.authors.pop(interaction.user)
-
+        word = linecache.getline(file, random.randrange(1, sum(1 for _ in open(file)) + 1)).lower()
+        
+        await self.play_hangman(
+            interaction=interaction,
+            word=word,
+            category=category,
+            tries=9,
+            players=[interaction.user],
+            current_turn=interaction.user,
+            add_hints=True,
+            using_view=userSettings["hangman_buttons"]
+        )
+    
     @singleplayer.autocomplete("category")
     async def hangman_autocomplete(self, interaction: discord.Interaction, current: str):
         userSettings = self.bot.db.getSettings(interaction.user.id)
@@ -276,7 +334,6 @@ class GamesCog(commands.Cog):
             if "categories" in userSettings:
                 categories += userSettings["categories"]
         return [app_commands.Choice(name=category, value=category) for category in categories if current.lower() in category.lower()]
-
 
     @hangman_group.command(description = "Starts a 2 player hangman game!")
     @app_commands.describe(
@@ -336,11 +393,6 @@ class GamesCog(commands.Cog):
 
         await interaction.edit_original_response(content="Starting hangman game... type \"quit\" anytime to quit.", view=None)
 
-        userSettings = self.bot.db.getSettings(interaction.user.id)
-        # if category.lower() != "all" and ("categories" not in userSettings or category.capitalize() not in userSettings["categories"]):
-        #     await interaction.edit_original_response(content = "Sorry, this category either does not exist or you don't have it unlocked yet.")
-        #     return
-
         if interaction.user not in self.bot.authors:
             self.bot.authors[interaction.user] = [interaction.channel]
         else:
@@ -350,217 +402,21 @@ class GamesCog(commands.Cog):
         else:
             self.bot.authors[opponent].append(interaction.channel)
 
-        # file = f"words/{category.lower()}.txt"
         file = f"words/all.txt"
-
-        # Find number of lines in the file
-        def count_generator(reader):
-            b = reader(1024 * 1024)
-            while b:
-                yield b
-                b = reader(1024 * 1024)
-        with open(file, 'rb') as fp:
-            c_generator = count_generator(fp.raw.read)
-            # count each \n
-            count = sum(buffer.count(b'\n') for buffer in c_generator) + 1
-
-        # if category.lower() == "all" or category.lower() == "objects":
-        #     prize = 7
-        # elif category.lower() == "animals":
-        #     prize = 6
-        # else:
-        #     prize = 4
-
-        cl = ""
-        wl = ""
-        tries = 9
-        pic = "hangman-0.png"
-        word = linecache.getline(file, random.randrange(1, count + 1)).lower()
-        usingView = userSettings["hangman_buttons"]
-        embed = discord.Embed(title = interaction.user.name + " vs " + opponent.name)
-        print(word)
-
-        turn: discord.User = random.choice([interaction.user, opponent])
-
-        category = "All"
-
-        embed.add_field(name = "GAME MECHANICS:", value = "\n- Guess letters\n- The turn switches when you enter a wrong guess\n- Whoever completes the word wins\n- Enter \"quit\" to quit the game\n- You have 1 minute to respond")
-        embed.add_field(name = "Category", value = category)
-        embed.add_field(name = "Current Turn", value = turn.mention)
-        embed.add_field(name = "Wrong Letters:", value = "None", inline = False)
-        value = ""
-        for i in range(len(word)):
-            print(word[i] == "\n" or word[i] == " ")
-            if word[i] == "\n" or word[i] == " ":
-                value += "  "
-            else:
-                value += "\_ "
-        print(value)
-        embed.add_field(name = "Word:", value = value, inline = True)
-        embed.add_field(name = "Wrong Tries Left:", value = tries)
-
-        file = discord.File("hangman-pics/" + pic, filename=pic)
-        embed.set_image(url=f"attachment://{pic}")
-        embed.set_footer(text = "Please enter your next guess (or \"quit\").")
-
-        if not usingView:
-            await interaction.edit_original_response(content = "It is currently " + turn.mention + "'s turn", attachments = [file], embed=embed)
-        else:
-            view = Hangman(turn, False)
-            await interaction.edit_original_response(content = "It is currently " + turn.mention + "'s turn", attachments = [file], embed=embed, view=view)
-        embed.clear_fields()
-
-        def check(m: discord.Message):
-            return (m.author == interaction.user or m.author == opponent) and m.channel == interaction.channel
-
-        while True:
-            try:
-                if not usingView:
-                    while True:
-                        try:
-                            guess: discord.Message = await self.bot.wait_for("message", timeout = 60.0, check = check)
-                        except asyncio.TimeoutError:
-                            await interaction.edit_original_response(content = f"{turn.name} did not respond in time, and they lose!", attachments = [], embed = None)
-                            not_turn = interaction.user if turn == opponent else opponent
-                            self.bot.db.changeItem(turn.id, "coins", -1 * bet)
-                            self.bot.db.changeItem(turn.id, "coins", bet)
-                            self.bot.db.addXp(not_turn.id, random.randrange(5, 15), interaction)
-                            break
-                        try:
-                            await guess.delete()
-                        except discord.Forbidden:
-                            pass
-                        if guess.author == turn:
-                            break
-                    print("e")
-                    guess_content = str(guess.content.lower())
-                    print(guess)
-                    print(guess_content)
-                else:
-                    await view.wait()
-                    if view.guessed_letter is not None:
-                        guess_content = view.guessed_letter.lower()
-                    elif view.game_quit:
-                        guess_content = "quit"
-                    else:
-                        await interaction.edit_original_response(content = f"{turn.name} did not respond in time, and they lose!", attachments = [], embed = None)
-                        not_turn = interaction.user if turn == opponent else opponent
-                        self.bot.db.changeItem(turn.id, "coins", -1 * bet)
-                        self.bot.db.changeItem(turn.id, "coins", bet)
-                        await self.bot.db.addXp(not_turn.id, random.randrange(5, 15), interaction)
-                        break
-
-                if guess_content == "quit":
-                    await interaction.edit_original_response(content = ("Thanks for playing! You have quit the game."), attachments = [], embed = None, view = None)
-                    break
-                elif len(guess_content) != 1:
-                    embed.clear_fields()
-                    embed.color = discord.Colour.orange()
-                    embed.add_field(name = "Guess Unsuccessful", value = "You can only guess one letter at a time!")
-                elif guess_content not in "abcdefghijklmnopqrstuvwxyz":
-                    embed.clear_fields()
-                    embed.color = discord.Colour.orange()
-                    embed.add_field(name = "Guess Unsuccessful", value = "Your guess must be in the alphabet!")
-                elif guess_content in cl or guess_content in wl:
-                    embed.clear_fields()
-                    embed.color = discord.Colour.orange()
-                    embed.add_field(name = "Guess Unsuccessful", value = "You have already guessed this letter!")
-                elif guess_content in word: # Guess is correct
-                    cl += guess_content
-                    embed.clear_fields()
-                    embed.color = discord.Colour.dark_green()
-                    embed.add_field(name = "✅ Guess Correct!", value = guess_content + " is in the word!")
-                else: # Guess is wrong                
-                    tries -= 1
-                    wl += guess_content + " "
-                    pic = "hangman-" + str(9 - tries) + ".png"
-                    embed.clear_fields()
-                    embed.color = discord.Colour.red()
-                    embed.add_field(name = "🔴 Guess Wrong", value = guess_content + " is not in the word :( !")
-                    turn = interaction.user if turn == opponent else opponent
-                    print(word)
-                
-                # Outputting wrong and correct letters
-                cl_txt = ""
-                msgContent = "It is currently " + turn.mention + "'s turn"
-                for letter in word:
-                    if letter in cl:
-                        cl_txt += letter + " "
-                    elif letter == "\n" or letter == " ":
-                        cl_txt += "  "
-                    else:
-                        cl_txt += "\_ "
-                if "_" not in cl_txt:
-                    embed.clear_fields()
-                    embed.title = ":tada: " + turn.name + " won the hangman game! :tada:"
-                    embed.color = discord.Colour.green()
-                    not_turn = interaction.user if turn == opponent else opponent
-                    embed.add_field(name = ":tada: " + turn.name + " Won! :tada:", value = f"{turn.name} won {bet} coins, while {not_turn.name} lost {bet} coins!")
-                    embed.set_footer(text = "Thanks for playing!")
-                    msgContent = ""
-                    if not interaction.app_permissions.manage_messages:
-                        embed.set_footer(text="If you give me the \"Manage Messages\" permission, I will be able to delete the messages so you don't need to keep scrolling up!")
-                elif tries == 0:
-                    embed.clear_fields()
-                    embed.title = "👎 You both ran out of tries! 👎"
-                    embed.color = discord.Colour.dark_red()
-                    embed.add_field(name = "🔴 You ran out of tries!", value = "The word was ||" + word + "||")
-                    embed.set_footer(text = "Please try again!")
-                embed.add_field(name = "Category:", value = category)
-                embed.add_field(name = "Current Turn", value = turn.mention)
-                if wl == "":
-                    embed.add_field(name = "Wrong Letters:", value = "None", inline = False)
-                else:
-                    embed.add_field(name = "Wrong Letters:", value = wl, inline = False)
-                print(cl_txt)
-                embed.add_field(name = "Word:", value = cl_txt)
-                embed.add_field(name = "Wrong tries left:", value = tries)
-                if tries > 9: # If there are more than 9 tries left (due to saves)
-                    pic = "hangman-0.png"
-                file = discord.File("hangman-pics/" + pic, filename=pic)
-                embed.set_image(url = f"attachment://{pic}")
-                if "_" in cl_txt and tries != 0:
-                    embed.set_footer(text = "Please enter your next guess. (or \"hint\"/\"save\"/\"quit\")")
-                if usingView:
-                    if "_" not in cl_txt or tries == 0:
-                        await interaction.edit_original_response(content = msgContent, attachments = [file], embed=embed, view=None)
-                    else:
-                        view = Hangman(turn, False)
-                        await interaction.edit_original_response(content = msgContent, attachments = [file], embed=embed, view=view)
-                else:
-                    await interaction.edit_original_response(content = msgContent, attachments = [file], embed=embed)
-                if "_" not in cl_txt:
-                    not_turn = interaction.user if turn == opponent else opponent
-                    self.bot.db.changeItem(turn.id, "coins", bet)
-                    self.bot.db.changeItem(not_turn.id, "coins", -1 * bet)
-                    await self.bot.db.addXp(turn, random.randrange(15, 30), interaction)
-                    await self.bot.db.addXp(not_turn, random.randrange(5, 15), interaction)
-                    break
-                elif tries == 0:
-                    break
-            except Exception as e:
-                await interaction.edit_original_response(content = ("OOF! There was an error... DM <@697628625150803989> with this error: `" + str(e) + "`"), attachments = [], embed = None, view=None)
-                if len(self.bot.authors[interaction.user]) > 1:
-                    self.bot.authors[interaction.user].remove(interaction.channel)
-                else:
-                    self.bot.authors.pop(interaction.user)
-                raise e
-        if len(self.bot.authors[interaction.user]) > 1:
-            self.bot.authors[interaction.user].remove(interaction.channel)
-        else:
-            self.bot.authors.pop(interaction.user)
-        if len(self.bot.authors[opponent]) > 1:
-            self.bot.authors[opponent].remove(interaction.channel)
-        else:
-            self.bot.authors.pop(opponent)
-
-    # @multiplayer.autocomplete("category")
-    # async def hangman_autocomplete_multiplayer(self, interaction: discord.Interaction, current: str):
-    #     userSettings = self.bot.db.getSettings(interaction.user.id)
-    #     categories = ["All"]
-    #     if "categories" in userSettings:
-    #         categories += userSettings["categories"]
-    #     return [app_commands.Choice(name=category, value=category) for category in categories if current.lower() in category.lower()]
+        word = linecache.getline(file, random.randrange(1, sum(1 for _ in open(file)) + 1)).lower()
+        current_turn = random.choice([interaction.user, opponent])
+        
+        await self.play_hangman(
+            interaction=interaction,
+            word=word,
+            category="All",
+            tries=9,
+            players=[interaction.user, opponent],
+            current_turn=current_turn,
+            bet=bet,
+            add_hints=False,
+            using_view=user1Settings["hangman_buttons"]
+        )
 
     @hangman_group.command(description = "Starts a multiplayer hangman tournament!")
     @app_commands.describe(
@@ -594,7 +450,7 @@ class GamesCog(commands.Cog):
         await interaction.edit_original_response(embed=embed, view=None)
         time.sleep(10)
 
-        view = TournamentGame(view.users, rounds, interaction)
+        view = TournamentGame(view.users, rounds, interaction, self.play_hangman)
         embed = view.create_game_embed()
         await interaction.edit_original_response(content="", embed=embed, view=view)
         await view.wait()

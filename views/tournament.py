@@ -70,12 +70,12 @@ class Tournament(discord.ui.View):
             self.stop()
 
 class TournamentGame(discord.ui.View):
-    def __init__(self, users: list[discord.User], rounds: int, original_interaction: discord.Interaction):
+    def __init__(self, users: list[discord.User], rounds: int, original_interaction: discord.Interaction, play_hangman_func):
         super().__init__(timeout=None)
         self.scores = {user: 0 for user in users}
         self.word = self.get_word()
-        # self.word = "a"
         self.original_interaction = original_interaction
+        self.play_hangman = play_hangman_func
 
         self.completed: list[discord.User] = []
         self.winners: list[discord.User] = []
@@ -171,140 +171,36 @@ class TournamentGame(discord.ui.View):
 
         await interaction.response.defer(thinking=True, ephemeral=True)
 
-        cl = ""
-        wl = ""
-        word = self.word
-        tries = 9
-        pic = "hangman-0.png"
-        embed = discord.Embed(title = interaction.user.name + "'s hangman game")
-        category = "All"
-
-        embed.add_field(name = "GAME MECHANICS:", value = "Guess letters\n- Enter \"quit\" to quit the game\n")
-        embed.add_field(name = "Category", value = category)
-        embed.add_field(name = "Wrong Letters:", value = "None", inline = False)
-        value = ""
-        for i in range(len(word)):
-            print(word[i] == "\n" or word[i] == " ")
-            if word[i] == "\n" or word[i] == " ":
-                value += "  "
-            else:
-                value += "\_ "
-        print(value)
-        embed.add_field(name = "Word:", value = value, inline = True)
-        embed.add_field(name = "Wrong Tries Left:", value = tries)
-
-        file = discord.File("hangman-pics/" + pic, filename=pic)
-        embed.set_image(url=f"attachment://{pic}")
-        embed.set_footer(text = "Please enter your next guess (or \"quit\").")
-
-        view = Hangman(interaction.user, False)
-        await interaction.edit_original_response(content = "", attachments = [file], embed=embed, view=view)
-        embed.clear_fields()
-
-        while True:
-            await view.wait()
-            if view.guessed_letter is not None:
-                guess_content = view.guessed_letter.lower()
-            elif view.game_quit:
-                guess_content = "quit"
-            else:
-                self.completed.append(interaction.user)
-                self.completedmsg += interaction.user.mention + "\n"
-                self.notcompletedmsg = self.notcompletedmsg.replace(interaction.user.mention, "")
-                await interaction.edit_original_response(content = "The game has timed out, so you lost.", attachments = [], embed = None, view=None)
-                break
-
-            if guess_content == "quit":
-                self.completed.append(interaction.user)
-                self.completedmsg += interaction.user.mention + "\n"
-                self.notcompletedmsg = self.notcompletedmsg.replace(interaction.user.mention, "")
-                await interaction.edit_original_response(content = ("Thanks for playing! You have quit the game."), attachments = [], embed = None, view = None)
-                break
-            elif len(guess_content) != 1:
-                embed.clear_fields()
-                embed.color = discord.Colour.orange()
-                embed.add_field(name = "Guess Unsuccessful", value = "You can only guess one letter at a time!")
-            elif guess_content not in "abcdefghijklmnopqrstuvwxyz":
-                embed.clear_fields()
-                embed.color = discord.Colour.orange()
-                embed.add_field(name = "Guess Unsuccessful", value = "Your guess must be in the alphabet!")
-            elif guess_content in cl or guess_content in wl:
-                embed.clear_fields()
-                embed.color = discord.Colour.orange()
-                embed.add_field(name = "Guess Unsuccessful", value = "You have already guessed this letter!")
-            elif guess_content in word: # Guess is correct
-                cl += guess_content
-                embed.clear_fields()
-                embed.color = discord.Colour.dark_green()
-                embed.add_field(name = "✅ Guess Correct!", value = guess_content + " is in the word!")
-            else: # Guess is wrong                
-                tries -= 1
-                wl += guess_content + " "
-                pic = "hangman-" + str(9 - tries) + ".png"
-                embed.clear_fields()
-                embed.color = discord.Colour.red()
-                embed.add_field(name = "🔴 Guess Wrong", value = guess_content + " is not in the word :( !")
-                print(word)
-            
-            # Outputting wrong and correct letters
-            cl_txt = ""
-            for letter in word:
-                if letter in cl:
-                    cl_txt += letter + " "
-                elif letter == "\n" or letter == " ":
-                    cl_txt += "  "
-                else:
-                    cl_txt += "\_ "
-            if "_" not in cl_txt:
-                embed.clear_fields()
-                embed.title = ":tada: " + interaction.user.name + " won the hangman game! :tada:"
-                embed.color = discord.Colour.brand_green()
-                embed.add_field(name = ":tada: You Won! :tada:", value = f"Please wait for others to finish their games.")
-                embed.set_footer(text = "Thanks for playing!")
-            elif tries == 0:
-                embed.clear_fields()
-                embed.color = discord.Colour.dark_red()
-                embed.title = "👎 " + interaction.user.name + " lost the hangman game! 👎"
-                embed.add_field(name = "🔴 You Lost!", value = "The word was ||" + word + "||. Please wait for others to finish their games.")
-            embed.add_field(name = "Category:", value = category)
-            if wl == "":
-                embed.add_field(name = "Wrong Letters:", value = "None", inline = False)
-            else:
-                embed.add_field(name = "Wrong Letters:", value = wl, inline = False)
-            print(cl_txt)
-            embed.add_field(name = "Word:", value = cl_txt)
-            embed.add_field(name = "Wrong tries left:", value = tries)
-            if tries > 9: # If there are more than 9 tries left (due to saves)
-                pic = "hangman-0.png"
-            file = discord.File("hangman-pics/" + pic, filename=pic)
-            embed.set_image(url = f"attachment://{pic}")
-            if "_" in cl_txt and tries != 0:
-                embed.set_footer(text = "Please enter your next guess. (or \"hint\"/\"save\"/\"quit\")")
-            if "_" not in cl_txt or tries == 0:
-                await interaction.edit_original_response(content = "", attachments = [file], embed=embed, view=None)
-            else:
-                view = Hangman(interaction.user, False)
-                await interaction.edit_original_response(content = "", attachments = [file], embed=embed, view=view)
-            if "_" not in cl_txt:
+        # Override the stop method to handle tournament-specific logic
+        original_stop = self.stop
+        def custom_stop():
+            if "_" not in interaction.message.embeds[0].title:
                 self.winners.append(interaction.user)
-                self.completed.append(interaction.user)
-                self.completedmsg += interaction.user.mention + "\n"
-                self.notcompletedmsg = self.notcompletedmsg.replace(interaction.user.mention, "")
-                print(self.notcompletedmsg)
-                break
-            elif tries == 0:
-                self.completed.append(interaction.user)
-                self.completedmsg += interaction.user.mention + "\n"
-                self.notcompletedmsg = self.notcompletedmsg.replace(interaction.user.mention, "")
-                break
-        if len(self.completed) == len(self.scores.keys()):
-            if(self.curround >= self.rounds):
-                await self.original_interaction.edit_original_response(embed=self.create_final_embed(), view=None)
-                self.stop()
+            self.completed.append(interaction.user)
+            self.completedmsg += interaction.user.mention + "\n"
+            self.notcompletedmsg = self.notcompletedmsg.replace(interaction.user.mention, "")
+            
+            if len(self.completed) == len(self.scores.keys()):
+                if self.curround >= self.rounds:
+                    asyncio.create_task(self.original_interaction.edit_original_response(embed=self.create_final_embed(), view=None))
+                    original_stop()
+                else:
+                    asyncio.create_task(self.inter_round())
             else:
-                await self.inter_round()
-        else:
-            await self.original_interaction.edit_original_response(embed=self.create_game_embed())
+                asyncio.create_task(self.original_interaction.edit_original_response(embed=self.create_game_embed()))
+        self.stop = custom_stop
+
+        # Play the game using the passed in function
+        await self.play_hangman(
+            interaction=interaction,
+            word=self.word,
+            category="All",
+            tries=9,
+            players=[interaction.user],
+            current_turn=interaction.user,
+            add_hints=False,
+            using_view=True
+        )
 
     def create_game_embed(self) -> discord.Embed:
         embed = discord.Embed(title=f"Round {self.curround}", description="Hangman Tournament", color=discord.Colour.orange())
